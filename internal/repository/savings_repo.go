@@ -113,6 +113,7 @@ func toSavingsInsertQueryParams(plan domain.SavingsPlan) (db.CreateSavingsParams
 			Valid: true,
 		},
 		MonthlyInterestRate:   multiplierToPercent(plan.InterestMultiplierM),
+		TotalDeposited:        int32(plan.TotalDeposited.Round(0).IntPart()),
 		TotalInterestEarnings: int32(plan.TotalInterestEarnings.Round(0).IntPart()),
 		RateOfReturn:          plan.RateOfReturn.String(),
 		InflationAdjustedRor:  plan.InflationAdjustedROR.String(),
@@ -178,6 +179,7 @@ func toSavingsPlan(queryResult db.Saving) (domain.SavingsPlan, error) {
 		DurationMonths:        decimal.NewFromInt32(queryResult.DurationYears).Mul(decimal.NewFromInt(12)),
 		InterestMultiplierM:   percentToMultiplier(queryResult.MonthlyInterestRate),
 		TotalInterestEarnings: decimal.NewFromInt32(queryResult.TotalInterestEarnings),
+		TotalDeposited:        decimal.NewFromInt32(queryResult.TotalDeposited),
 		RateOfReturn:          rateOfReturn,
 		InflationAdjustedROR:  inflationAdjustedReturn,
 	}

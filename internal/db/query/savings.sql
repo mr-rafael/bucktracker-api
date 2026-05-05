@@ -11,10 +11,11 @@ INSERT INTO savings (user_id,
     start_date,
     monthly_interest_rate,
     total_interest_earnings,
+    total_deposited,
     rate_of_return,
     inflation_adjusted_ror
 )
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
 RETURNING *;
 
 -- name: GetSavingsByUserID :many

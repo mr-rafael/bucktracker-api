@@ -14,6 +14,7 @@ func ToSavingsResponse(plan domain.SavingsPlan) dto.SavingsResponseParams {
 
 	response.MonthlyInterestRate = multiplierToHighPrecisionPercent(plan.InterestMultiplierM)
 	response.TotalInterestEarnings = int(plan.TotalInterestEarnings.Round(0).IntPart())
+	response.TotalDeposited = int(plan.TotalDeposited.Round(0).IntPart())
 	response.RateOfReturn = plan.RateOfReturn.String()
 	response.InflationAdjustedROR = plan.InflationAdjustedROR.String()
 	for _, status := range plan.Plan {

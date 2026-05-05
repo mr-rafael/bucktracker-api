@@ -24,11 +24,12 @@ INSERT INTO savings (user_id,
     start_date,
     monthly_interest_rate,
     total_interest_earnings,
+    total_deposited,
     rate_of_return,
     inflation_adjusted_ror
 )
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
-RETURNING id, user_id, name, starting_capital, yearly_interest_rate, interest_rate_type, monthly_contribution, duration_years, tax_rate, yearly_inflation_rate, start_date, monthly_interest_rate, total_interest_earnings, rate_of_return, inflation_adjusted_ror, created_at
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+RETURNING id, user_id, name, starting_capital, yearly_interest_rate, interest_rate_type, monthly_contribution, duration_years, tax_rate, yearly_inflation_rate, start_date, monthly_interest_rate, total_interest_earnings, rate_of_return, inflation_adjusted_ror, created_at, total_deposited
 `
 
 type CreateSavingsParams struct {
@@ -44,6 +45,7 @@ type CreateSavingsParams struct {
 	StartDate             pgtype.Timestamptz
 	MonthlyInterestRate   string
 	TotalInterestEarnings int32
+	TotalDeposited        int32
 	RateOfReturn          string
 	InflationAdjustedRor  string
 }
@@ -62,6 +64,7 @@ func (q *Queries) CreateSavings(ctx context.Context, arg CreateSavingsParams) (S
 		arg.StartDate,
 		arg.MonthlyInterestRate,
 		arg.TotalInterestEarnings,
+		arg.TotalDeposited,
 		arg.RateOfReturn,
 		arg.InflationAdjustedRor,
 	)
@@ -83,6 +86,7 @@ func (q *Queries) CreateSavings(ctx context.Context, arg CreateSavingsParams) (S
 		&i.RateOfReturn,
 		&i.InflationAdjustedRor,
 		&i.CreatedAt,
+		&i.TotalDeposited,
 	)
 	return i, err
 }
@@ -103,7 +107,7 @@ func (q *Queries) DeleteSavings(ctx context.Context, arg DeleteSavingsParams) er
 }
 
 const getSavings = `-- name: GetSavings :one
-SELECT id, user_id, name, starting_capital, yearly_interest_rate, interest_rate_type, monthly_contribution, duration_years, tax_rate, yearly_inflation_rate, start_date, monthly_interest_rate, total_interest_earnings, rate_of_return, inflation_adjusted_ror, created_at FROM savings
+SELECT id, user_id, name, starting_capital, yearly_interest_rate, interest_rate_type, monthly_contribution, duration_years, tax_rate, yearly_inflation_rate, start_date, monthly_interest_rate, total_interest_earnings, rate_of_return, inflation_adjusted_ror, created_at, total_deposited FROM savings
 WHERE id = $1 AND user_id = $2
 `
 
@@ -132,6 +136,7 @@ func (q *Queries) GetSavings(ctx context.Context, arg GetSavingsParams) (Saving,
 		&i.RateOfReturn,
 		&i.InflationAdjustedRor,
 		&i.CreatedAt,
+		&i.TotalDeposited,
 	)
 	return i, err
 }

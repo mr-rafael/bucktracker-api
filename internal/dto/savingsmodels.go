@@ -16,6 +16,7 @@ type SavingsRequestParams struct {
 type SavingsResponseParams struct {
 	MonthlyInterestRate   string          `json:"monthlyInterestRate"`
 	TotalInterestEarnings int             `json:"totalEarnings"`
+	TotalDeposited        int             `json:"totalDeposited"`
 	RateOfReturn          string          `json:"rateOfReturn"`
 	InflationAdjustedROR  string          `json:"inflationAdjustedROR"`
 	Plan                  []SavingsStatus `json:"plan"`
@@ -43,6 +44,7 @@ type OriginalSavingsData struct {
 type CalculatedSavingsData struct {
 	MonthlyInterestRate   string `json:"monthlyInterestRate"`
 	TotalInterestEarnings int    `json:"totalInterestEarnings"`
+	TotalDeposited        int    `json:"totalDeposited"`
 	RateOfReturn          string `json:"rateOfReturn"`
 	InflationAdjustedROR  string `json:"inflationAdjustedROR"`
 }
@@ -68,6 +70,7 @@ type SavingsSaveResponseParams struct {
 	YearlyInflationRate   string `json:"yearlyInflationRate"`
 	StartDate             string `json:"startDate"`
 	MonthlyInterestRate   string `json:"monthlyInterestRate"`
+	TotalDeposited        int    `json:"totalDeposited"`
 	TotalInterestEarnings int    `json:"totalEarnings"`
 	RateOfReturn          string `json:"rateOfReturn"`
 	InflationAdjustedROR  string `json:"inflationAdjustedROR"`

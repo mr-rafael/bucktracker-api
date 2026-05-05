@@ -45,6 +45,7 @@ type SavingsPlan struct {
 	Date                  time.Time
 	InterestMultiplierM   decimal.Decimal
 	TotalInterestEarnings decimal.Decimal
+	TotalDeposited        decimal.Decimal
 	RateOfReturn          decimal.Decimal
 	InflationAdjustedROR  decimal.Decimal
 	Plan                  []SavingsStatus
@@ -81,6 +82,7 @@ func (p *SavingsPlan) GenerateInterest(s SavingsStatus) SavingsStatus {
 
 func (p *SavingsPlan) Contribute(s SavingsStatus) SavingsStatus {
 	p.CurrentCapital = p.CurrentCapital.Add(p.MonthlyContribution)
+	p.TotalDeposited = p.TotalDeposited.Add(p.MonthlyContribution)
 
 	s.Increase = s.Increase + int(p.MonthlyContribution.Round(0).IntPart())
 	s.Contribution = int(p.MonthlyContribution.Round(0).IntPart())
@@ -90,7 +92,7 @@ func (p *SavingsPlan) Contribute(s SavingsStatus) SavingsStatus {
 
 func (p *SavingsPlan) FinalCalculations() {
 	oneHundred := decimal.NewFromInt(100)
-	returnRate := p.CurrentCapital.Div(p.StartingCapital)
+	returnRate := p.TotalInterestEarnings.Div(p.TotalDeposited)
 	p.RateOfReturn = returnRate.Mul(oneHundred).Round(2)
 	totalInflation := p.InflationMultiplierY.Pow(p.DurationMonths.Div(decimal.NewFromInt(12)))
 	p.InflationAdjustedROR = returnRate.Div(totalInflation).Mul(oneHundred).Round(2)

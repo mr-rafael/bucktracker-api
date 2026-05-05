@@ -62,6 +62,7 @@ type Saving struct {
 	RateOfReturn          string
 	InflationAdjustedRor  string
 	CreatedAt             pgtype.Timestamptz
+	TotalDeposited        int32
 }
 
 type SavingsState struct {

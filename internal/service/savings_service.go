@@ -118,6 +118,7 @@ func initializeSavingsPlan(input domain.SavingsInput, userID uuid.UUID, name str
 	}
 	plan.StartingCapital = startingCapital
 	plan.CurrentCapital = startingCapital
+	plan.TotalDeposited = startingCapital
 
 	monthlyInterestRate, err := toMonthlyInterestMultiplier(input.YearlyInterestRate, input.InterestRateType)
 	if err != nil {
@@ -129,7 +130,7 @@ func initializeSavingsPlan(input domain.SavingsInput, userID uuid.UUID, name str
 	plan.InterestMultiplierM = monthlyInterestRate
 
 	durationMonths := decimal.NewFromInt(int64(input.DurationYears)).Mul(decimal.NewFromInt(12))
-	if !decimalIsBetween(durationMonths, minDurYears, maxDurYears) {
+	if !decimalIsBetween(decimal.NewFromInt32(int32(input.DurationYears)), minDurYears, maxDurYears) {
 		return domain.SavingsPlan{}, fmt.Errorf("invalid plan duration. The valid range is %v-%v", minDurYears, maxDurYears)
 	}
 	plan.DurationMonths = durationMonths
