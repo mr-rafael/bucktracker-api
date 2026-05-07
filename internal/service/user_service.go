@@ -5,13 +5,12 @@ import (
 	"fmt"
 
 	"github.com/Mr-Rafael/finance-calculator/internal/db"
-	"github.com/Mr-Rafael/finance-calculator/internal/repository"
 	"github.com/jackc/pgx/v5/pgtype"
 	"golang.org/x/crypto/bcrypt"
 )
 
 type UserService struct {
-	repo *repository.UsersRepo
+	repo UsersRepository
 }
 
 type RegisterUserInput struct {
@@ -27,7 +26,14 @@ type User struct {
 	CreatedAt pgtype.Timestamp
 }
 
-func NewUserService(repo *repository.UsersRepo) *UserService {
+type UsersRepository interface {
+	CreateUser(context.Context, db.CreateUserParams) (db.User, error)
+	GetUserByEmail(context.Context, string) (db.User, error)
+	GetUserByID(context.Context, pgtype.UUID) (db.User, error)
+	DeleteUser(context.Context, pgtype.UUID) error
+}
+
+func NewUserService(repo UsersRepository) *UserService {
 	return &UserService{repo: repo}
 }
 

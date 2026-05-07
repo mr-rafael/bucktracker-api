@@ -2,7 +2,9 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"log"
+	"strings"
 	"testing"
 
 	"github.com/Mr-Rafael/finance-calculator/internal/db"
@@ -347,5 +349,41 @@ func TestSaveSavingsPlan(t *testing.T) {
 
 	if got.RateOfReturn != want.RateOfReturn {
 		log.Fatalf("Expected saved rate of return (%v) to match expected rate (%v), but it didn't.", got.RateOfReturn, want.RateOfReturn)
+	}
+}
+
+func TestGetSavingsPlansByUserNoPlans(t *testing.T) {
+	mockUserID := uuid.Nil
+	mockSavingsRepo := &MockSavingsRepo{
+		GetSavingsPlansByUserFunc: func(ctx context.Context, id uuid.UUID) ([]db.GetSavingsByUserIDRow, error) {
+			return nil, nil
+		},
+	}
+	service := NewSavingsService(mockSavingsRepo)
+	ctx := context.Background()
+
+	got, err := service.GetSavingsPlansByUser(ctx, mockUserID)
+	if err != nil {
+		log.Fatalf("Error fetching savings plans for user: %v", err)
+	}
+
+	if len(got) > 0 {
+		log.Fatalf("Expected the list of savings plan rows to come back empty, but it didn't.")
+	}
+}
+
+func TestGetSavingsPlanNotFound(t *testing.T) {
+	mockUserID := uuid.Nil
+	mockSavingsRepo := &MockSavingsRepo{
+		GetSavingsPlansByUserFunc: func(ctx context.Context, id uuid.UUID) ([]db.GetSavingsByUserIDRow, error) {
+			return nil, fmt.Errorf("savings plan not found")
+		},
+	}
+	service := NewSavingsService(mockSavingsRepo)
+	ctx := context.Background()
+
+	_, err := service.GetSavingsPlansByUser(ctx, mockUserID)
+	if !strings.Contains(err.Error(), "savings plan not found") {
+		log.Fatalf("Expected an error log due to the savings plan not being found, but the function didn't return it: %v", err)
 	}
 }

@@ -48,13 +48,6 @@ type AuthRepository interface {
 	RevokeTokenByUserID(ctx context.Context, id pgtype.UUID) error
 }
 
-type UsersRepository interface {
-	CreateUser(context.Context, db.CreateUserParams) (db.User, error)
-	GetUserByEmail(context.Context, string) (db.User, error)
-	GetUserByID(context.Context, pgtype.UUID) (db.User, error)
-	DeleteUser(context.Context, pgtype.UUID) error
-}
-
 func NewAuthService(authRepo AuthRepository, usersRepo UsersRepository, accessSecret string, refreshSecret string) *AuthService {
 	return &AuthService{
 		authRepo:      authRepo,

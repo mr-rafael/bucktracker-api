@@ -301,14 +301,14 @@ func TestGetLoanNotFound(t *testing.T) {
 	mockLoanID := uuid.Nil
 	mockLoansRepo := &MockLoansRepo{
 		GetLoanByIDFunc: func(ctx context.Context, loanID uuid.UUID, userID uuid.UUID) (domain.LoanPaymentPlan, error) {
-			return domain.LoanPaymentPlan{}, fmt.Errorf("attempt to fetch loan")
+			return domain.LoanPaymentPlan{}, fmt.Errorf("loan not found")
 		},
 	}
 	service := NewLoansService(mockLoansRepo)
 	ctx := context.Background()
 
 	_, err := service.loansRepo.GetLoanByID(ctx, mockLoanID, mockUserID)
-	if !strings.Contains(err.Error(), "attempt to fetch loan") {
+	if !strings.Contains(err.Error(), "loan not found") {
 		log.Fatalf("Expected an error log due to the loan not being found, but the function didn't return it: %v", err)
 	}
 }
