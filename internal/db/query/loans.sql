@@ -23,6 +23,22 @@ WHERE user_id = $1;
 SELECT * FROM loans
 WHERE id = $1 AND user_id = $2;
 
+-- name: UpdateLoan :one
+UPDATE loans
+SET name = $3,
+    starting_principal = $4,
+    yearly_interest_rate = $5,
+    monthly_payment = $6,
+    escrow_payment = $7,
+    start_date = $8,
+    monthly_interest_rate = $9,
+    duration_months = $10,
+    total_expenditure = $11,
+    total_paid = $12,
+    cost_of_credit = $13
+WHERE id = $1 AND user_id = $2
+RETURNING *;
+
 -- name: DeleteLoan :exec
 DELETE FROM loans
 WHERE id = $1 AND user_id = $2;

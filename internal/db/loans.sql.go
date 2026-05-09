@@ -156,3 +156,72 @@ func (q *Queries) GetLoansByUserID(ctx context.Context, userID pgtype.UUID) ([]G
 	}
 	return items, nil
 }
+
+const updateLoan = `-- name: UpdateLoan :one
+UPDATE loans
+SET name = $3,
+    starting_principal = $4,
+    yearly_interest_rate = $5,
+    monthly_payment = $6,
+    escrow_payment = $7,
+    start_date = $8,
+    monthly_interest_rate = $9,
+    duration_months = $10,
+    total_expenditure = $11,
+    total_paid = $12,
+    cost_of_credit = $13
+WHERE id = $1 AND user_id = $2
+RETURNING id, user_id, name, starting_principal, yearly_interest_rate, monthly_payment, escrow_payment, start_date, monthly_interest_rate, duration_months, total_expenditure, total_paid, cost_of_credit, created_at
+`
+
+type UpdateLoanParams struct {
+	ID                  pgtype.UUID
+	UserID              pgtype.UUID
+	Name                string
+	StartingPrincipal   int32
+	YearlyInterestRate  string
+	MonthlyPayment      int32
+	EscrowPayment       int32
+	StartDate           pgtype.Timestamptz
+	MonthlyInterestRate string
+	DurationMonths      int32
+	TotalExpenditure    int32
+	TotalPaid           int32
+	CostOfCredit        string
+}
+
+func (q *Queries) UpdateLoan(ctx context.Context, arg UpdateLoanParams) (Loan, error) {
+	row := q.db.QueryRow(ctx, updateLoan,
+		arg.ID,
+		arg.UserID,
+		arg.Name,
+		arg.StartingPrincipal,
+		arg.YearlyInterestRate,
+		arg.MonthlyPayment,
+		arg.EscrowPayment,
+		arg.StartDate,
+		arg.MonthlyInterestRate,
+		arg.DurationMonths,
+		arg.TotalExpenditure,
+		arg.TotalPaid,
+		arg.CostOfCredit,
+	)
+	var i Loan
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.Name,
+		&i.StartingPrincipal,
+		&i.YearlyInterestRate,
+		&i.MonthlyPayment,
+		&i.EscrowPayment,
+		&i.StartDate,
+		&i.MonthlyInterestRate,
+		&i.DurationMonths,
+		&i.TotalExpenditure,
+		&i.TotalPaid,
+		&i.CostOfCredit,
+		&i.CreatedAt,
+	)
+	return i, err
+}

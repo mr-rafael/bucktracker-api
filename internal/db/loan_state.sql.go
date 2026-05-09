@@ -58,6 +58,16 @@ func (q *Queries) CreateLoanState(ctx context.Context, arg CreateLoanStateParams
 	return i, err
 }
 
+const deleteLoanStatesByLoanID = `-- name: DeleteLoanStatesByLoanID :exec
+DELETE FROM loan_state
+WHERE loan_id = $1
+`
+
+func (q *Queries) DeleteLoanStatesByLoanID(ctx context.Context, loanID pgtype.UUID) error {
+	_, err := q.db.Exec(ctx, deleteLoanStatesByLoanID, loanID)
+	return err
+}
+
 const getLoanStatesByLoanID = `-- name: GetLoanStatesByLoanID :many
 SELECT id, loan_id, date, payment, interest, other_payments, paydown, principal FROM loan_state
 WHERE loan_id = $1

@@ -14,3 +14,7 @@ RETURNING *;
 SELECT * FROM loan_state
 WHERE loan_id = $1
 ORDER BY date ASC;
+
+-- name: DeleteLoanStatesByLoanID :exec
+DELETE FROM loan_state
+WHERE loan_id = $1;

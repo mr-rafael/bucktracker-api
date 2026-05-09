@@ -83,6 +83,26 @@ func (r *LoansRepo) GetLoanByID(ctx context.Context, loanID uuid.UUID, userID uu
 	return plan, nil
 }
 
+func (r *LoansRepo) UpdateLoan(ctx context.Context, plan domain.LoanPaymentPlan) (db.Loan, error) {
+	loanParams, err := toLoanUpdateQueryParams(plan)
+	if err != nil {
+		return db.Loan{}, fmt.Errorf("Error preparing params for insert query: %v", err)
+	}
+
+	queryResult, err := r.queries.UpdateLoan(ctx, loanParams)
+	if err != nil {
+		return db.Loan{}, fmt.Errorf("Failed to update loan on database: %v", err)
+	}
+
+	for _, status := range plan.Plan {
+		_, err := r.queries.CreateLoanState(ctx, toLoanStateInsertParams(status, queryResult.ID))
+		if err != nil {
+			return db.Loan{}, fmt.Errorf("Failed to save loan status to database: %v", err)
+		}
+	}
+	return queryResult, nil
+}
+
 func (r *LoansRepo) DeleteLoan(ctx context.Context, loanID uuid.UUID, userID uuid.UUID) error {
 	return r.queries.DeleteLoan(ctx, db.DeleteLoanParams(toLoanGetParams(loanID, userID)))
 }
@@ -93,6 +113,37 @@ func toLoanInsertQueryParams(plan domain.LoanPaymentPlan) (db.CreateLoanParams, 
 		return db.CreateLoanParams{}, err
 	}
 	return db.CreateLoanParams{
+		UserID: pgtype.UUID{
+			Bytes: plan.UserID,
+			Valid: true,
+		},
+		Name:               plan.Name,
+		StartingPrincipal:  int32(plan.OriginalData.StartingPrincipal),
+		YearlyInterestRate: plan.OriginalData.YearlyInterestRate,
+		MonthlyPayment:     int32(plan.OriginalData.MonthlyPayment),
+		EscrowPayment:      int32(plan.OriginalData.EscrowPayment),
+		StartDate: pgtype.Timestamptz{
+			Time:  startDate,
+			Valid: true,
+		},
+		MonthlyInterestRate: multiplierToPercent(plan.InterestMultiplierM),
+		DurationMonths:      int32(plan.DurationMonths),
+		TotalExpenditure:    int32(plan.TotalExpenditure.Round(0).IntPart()),
+		TotalPaid:           int32(plan.TotalPaid.Round(0).IntPart()),
+		CostOfCredit:        plan.CostOfCreditPercent.String(),
+	}, nil
+}
+
+func toLoanUpdateQueryParams(plan domain.LoanPaymentPlan) (db.UpdateLoanParams, error) {
+	startDate, err := time.Parse("2006-01-02", plan.OriginalData.StartDate)
+	if err != nil {
+		return db.UpdateLoanParams{}, err
+	}
+	return db.UpdateLoanParams{
+		ID: pgtype.UUID{
+			Bytes: plan.ID,
+			Valid: true,
+		},
 		UserID: pgtype.UUID{
 			Bytes: plan.UserID,
 			Valid: true,
