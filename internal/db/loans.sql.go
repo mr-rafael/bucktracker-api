@@ -126,6 +126,45 @@ func (q *Queries) GetLoan(ctx context.Context, arg GetLoanParams) (Loan, error) 
 	return i, err
 }
 
+const getLoanInitialData = `-- name: GetLoanInitialData :one
+SELECT name,
+    starting_principal,
+    yearly_interest_rate,
+    monthly_payment,
+    escrow_payment,
+    start_date
+FROM loans
+WHERE id = $1 AND user_id = $2
+`
+
+type GetLoanInitialDataParams struct {
+	ID     pgtype.UUID
+	UserID pgtype.UUID
+}
+
+type GetLoanInitialDataRow struct {
+	Name               string
+	StartingPrincipal  int32
+	YearlyInterestRate string
+	MonthlyPayment     int32
+	EscrowPayment      int32
+	StartDate          pgtype.Timestamptz
+}
+
+func (q *Queries) GetLoanInitialData(ctx context.Context, arg GetLoanInitialDataParams) (GetLoanInitialDataRow, error) {
+	row := q.db.QueryRow(ctx, getLoanInitialData, arg.ID, arg.UserID)
+	var i GetLoanInitialDataRow
+	err := row.Scan(
+		&i.Name,
+		&i.StartingPrincipal,
+		&i.YearlyInterestRate,
+		&i.MonthlyPayment,
+		&i.EscrowPayment,
+		&i.StartDate,
+	)
+	return i, err
+}
+
 const getLoansByUserID = `-- name: GetLoansByUserID :many
 SELECT id, name, starting_principal FROM loans
 WHERE user_id = $1

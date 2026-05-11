@@ -19,6 +19,7 @@ type LoansRepository interface {
 	SaveLoanPaymentPlan(context.Context, domain.LoanPaymentPlan) (db.Loan, error)
 	GetLoanPaymentPlansByUser(context.Context, uuid.UUID) ([]db.GetLoansByUserIDRow, error)
 	GetLoanByID(context.Context, uuid.UUID, uuid.UUID) (domain.LoanPaymentPlan, error)
+	GetLoanInitialData(context.Context, uuid.UUID, uuid.UUID) (domain.LoansInput, error)
 	UpdateLoan(context.Context, domain.LoanPaymentPlan) (db.Loan, error)
 	DeleteLoan(context.Context, uuid.UUID, uuid.UUID) error
 }
@@ -86,12 +87,15 @@ func (s *LoansService) GetLoan(ctx context.Context, planID uuid.UUID, userID uui
 }
 
 func (s *LoansService) UpdateLoan(ctx context.Context, input domain.UpdateLoanInput) (db.Loan, error) {
-	plan, err := initializePaymentPlan(updateInputToLoanInput(input), input.UserID, input.LoanName)
+	originalData, err := s.loansRepo.GetLoanInitialData(ctx, input.ID, input.UserID)
+	if err != nil {
+		return db.Loan{}, fmt.Errorf("Loan not found.")
+	}
+
+	plan, err := initializePaymentPlan(originalData, input.UserID, *input.LoanName)
 	if err != nil {
 		return db.Loan{}, fmt.Errorf("failed to initialize the payment plan struct: %v", err)
 	}
-	plan.ID = input.ID
-
 	plan, err = calculatePaymentPlan(plan)
 	if err != nil {
 		return db.Loan{}, fmt.Errorf("Error calculating payment plan: %v", err)
@@ -178,17 +182,6 @@ func initializePaymentPlan(input domain.LoansInput, userID uuid.UUID, name strin
 }
 
 func saveInputToLoanInput(input domain.SaveLoanInput) domain.LoansInput {
-	return domain.LoansInput{
-		StartingPrincipal:  input.StartingPrincipal,
-		YearlyInterestRate: input.YearlyInterestRate,
-		MonthlyPayment:     input.MonthlyPayment,
-		EscrowPayment:      input.EscrowPayment,
-		StartDate:          input.StartDate,
-	}
-
-}
-
-func updateInputToLoanInput(input domain.UpdateLoanInput) domain.LoansInput {
 	return domain.LoansInput{
 		StartingPrincipal:  input.StartingPrincipal,
 		YearlyInterestRate: input.YearlyInterestRate,

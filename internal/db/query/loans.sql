@@ -23,6 +23,16 @@ WHERE user_id = $1;
 SELECT * FROM loans
 WHERE id = $1 AND user_id = $2;
 
+-- name: GetLoanInitialData :one
+SELECT name,
+    starting_principal,
+    yearly_interest_rate,
+    monthly_payment,
+    escrow_payment,
+    start_date
+FROM loans
+WHERE id = $1 AND user_id = $2;
+
 -- name: UpdateLoan :one
 UPDATE loans
 SET name = $3,

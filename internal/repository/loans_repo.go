@@ -83,6 +83,23 @@ func (r *LoansRepo) GetLoanByID(ctx context.Context, loanID uuid.UUID, userID uu
 	return plan, nil
 }
 
+func (r *LoansRepo) GetLoanInitialData(ctx context.Context, loanID uuid.UUID, userID uuid.UUID) (domain.LoansInput, error) {
+
+	loanQueryResult, err := r.queries.GetLoanInitialData(ctx, toInitialLoanDataGetParams(loanID, userID))
+	if err != nil {
+		return domain.LoansInput{}, fmt.Errorf("failed to fetch loan pament plan from database: %v", err)
+	}
+	plan := domain.LoansInput{
+		StartingPrincipal:  int(loanQueryResult.StartingPrincipal),
+		YearlyInterestRate: loanQueryResult.YearlyInterestRate,
+		MonthlyPayment:     int(loanQueryResult.MonthlyPayment),
+		EscrowPayment:      int(loanQueryResult.EscrowPayment),
+		StartDate:          loanQueryResult.StartDate.Time.Format(time.RFC3339),
+	}
+
+	return plan, nil
+}
+
 func (r *LoansRepo) UpdateLoan(ctx context.Context, plan domain.LoanPaymentPlan) (db.Loan, error) {
 	loanParams, err := toLoanUpdateQueryParams(plan)
 	if err != nil {
@@ -218,6 +235,19 @@ func toLoanPaymentPlan(queryResult db.Loan) (domain.LoanPaymentPlan, error) {
 
 func toLoanGetParams(loanID uuid.UUID, userID uuid.UUID) db.GetLoanParams {
 	return db.GetLoanParams{
+		ID: pgtype.UUID{
+			Bytes: loanID,
+			Valid: true,
+		},
+		UserID: pgtype.UUID{
+			Bytes: userID,
+			Valid: true,
+		},
+	}
+}
+
+func toInitialLoanDataGetParams(loanID uuid.UUID, userID uuid.UUID) db.GetLoanInitialDataParams {
+	return db.GetLoanInitialDataParams{
 		ID: pgtype.UUID{
 			Bytes: loanID,
 			Valid: true,
