@@ -60,6 +60,15 @@ type LoanSaveRequestParams struct {
 	StartDate          string `json:"startDate"`
 }
 
+type LoanUpdateRequestParams struct {
+	Name               *string `json:"name"`
+	StartingPrincipal  *int    `json:"startingPrincipal"`
+	YearlyInterestRate *string `json:"yearlyInterestRate"`
+	MonthlyPayment     *int    `json:"monthlyPayment"`
+	EscrowPayment      *int    `json:"escrowPayment"`
+	StartDate          *string `json:"startDate"`
+}
+
 type LoanSaveResponseParams struct {
 	ID                  string `json:"id"`
 	Name                string `json:"name"`

@@ -117,3 +117,17 @@ func ToSaveLoanInput(userId uuid.UUID, input dto.LoanSaveRequestParams) domain.S
 	}
 	return loan
 }
+
+func ToUpdateLoanInput(loanID uuid.UUID, userId uuid.UUID, input dto.LoanUpdateRequestParams) domain.UpdateLoanInput {
+	loan := domain.UpdateLoanInput{
+		ID:                 loanID,
+		UserID:             userId,
+		LoanName:           input.Name,
+		StartingPrincipal:  input.StartingPrincipal,
+		YearlyInterestRate: input.YearlyInterestRate,
+		MonthlyPayment:     input.MonthlyPayment,
+		EscrowPayment:      input.EscrowPayment,
+		StartDate:          input.StartDate,
+	}
+	return loan
+}

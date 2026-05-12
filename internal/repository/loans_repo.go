@@ -83,21 +83,26 @@ func (r *LoansRepo) GetLoanByID(ctx context.Context, loanID uuid.UUID, userID uu
 	return plan, nil
 }
 
-func (r *LoansRepo) GetLoanInitialData(ctx context.Context, loanID uuid.UUID, userID uuid.UUID) (domain.LoansInput, error) {
+func (r *LoansRepo) GetLoanInitialData(ctx context.Context, loanID uuid.UUID, userID uuid.UUID) (domain.UpdateLoanData, error) {
 
 	loanQueryResult, err := r.queries.GetLoanInitialData(ctx, toInitialLoanDataGetParams(loanID, userID))
 	if err != nil {
-		return domain.LoansInput{}, fmt.Errorf("failed to fetch loan pament plan from database: %v", err)
+		return domain.UpdateLoanData{}, fmt.Errorf("failed to fetch loan pament plan from database: %v", err)
 	}
-	plan := domain.LoansInput{
+	loansInput := domain.LoansInput{
 		StartingPrincipal:  int(loanQueryResult.StartingPrincipal),
 		YearlyInterestRate: loanQueryResult.YearlyInterestRate,
 		MonthlyPayment:     int(loanQueryResult.MonthlyPayment),
 		EscrowPayment:      int(loanQueryResult.EscrowPayment),
 		StartDate:          loanQueryResult.StartDate.Time.Format(time.RFC3339),
 	}
+	loanData := domain.UpdateLoanData{
+		ID:       loanID,
+		Name:     loanQueryResult.Name,
+		LoanData: loansInput,
+	}
 
-	return plan, nil
+	return loanData, nil
 }
 
 func (r *LoansRepo) UpdateLoan(ctx context.Context, plan domain.LoanPaymentPlan) (db.Loan, error) {

@@ -81,6 +81,7 @@ func New() *App {
 	mux.Handle("GET /app/loans/list", authMW.Handle(http.HandlerFunc(loansHandler.HandleListLoans)))
 	mux.Handle("GET /app/savings/{id}", authMW.Handle(http.HandlerFunc(savingsHandler.HandleGetSavings)))
 	mux.Handle("GET /app/loans/{id}", authMW.Handle(http.HandlerFunc(loansHandler.HandleGetLoan)))
+	mux.Handle("PATCH /app/loans/{id}", authMW.Handle(http.HandlerFunc(loansHandler.HandleUpdateLoan)))
 	mux.Handle("DELETE /app/savings/{id}", authMW.Handle(http.HandlerFunc(savingsHandler.HandleDeleteSavings)))
 	mux.Handle("DELETE /app/loans/{id}", authMW.Handle(http.HandlerFunc(loansHandler.HandleDeleteLoan)))
 

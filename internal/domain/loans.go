@@ -36,6 +36,12 @@ type UpdateLoanInput struct {
 	StartDate          *string
 }
 
+type UpdateLoanData struct {
+	ID       uuid.UUID
+	Name     string
+	LoanData LoansInput
+}
+
 type LoanPaymentPlan struct {
 	ID                  uuid.UUID
 	UserID              uuid.UUID

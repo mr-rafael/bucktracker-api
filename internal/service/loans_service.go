@@ -19,7 +19,7 @@ type LoansRepository interface {
 	SaveLoanPaymentPlan(context.Context, domain.LoanPaymentPlan) (db.Loan, error)
 	GetLoanPaymentPlansByUser(context.Context, uuid.UUID) ([]db.GetLoansByUserIDRow, error)
 	GetLoanByID(context.Context, uuid.UUID, uuid.UUID) (domain.LoanPaymentPlan, error)
-	GetLoanInitialData(context.Context, uuid.UUID, uuid.UUID) (domain.LoansInput, error)
+	GetLoanInitialData(context.Context, uuid.UUID, uuid.UUID) (domain.UpdateLoanData, error)
 	UpdateLoan(context.Context, domain.LoanPaymentPlan) (db.Loan, error)
 	DeleteLoan(context.Context, uuid.UUID, uuid.UUID) error
 }
@@ -91,8 +91,9 @@ func (s *LoansService) UpdateLoan(ctx context.Context, input domain.UpdateLoanIn
 	if err != nil {
 		return db.Loan{}, fmt.Errorf("Loan not found.")
 	}
+	patchedData := patchLoanFields(originalData, input)
 
-	plan, err := initializePaymentPlan(originalData, input.UserID, *input.LoanName)
+	plan, err := initializePaymentPlan(patchedData.LoanData, input.UserID, patchedData.Name)
 	if err != nil {
 		return db.Loan{}, fmt.Errorf("failed to initialize the payment plan struct: %v", err)
 	}
@@ -201,4 +202,26 @@ func checkIfEnoughMonthlyPayment(plan domain.LoanPaymentPlan) error {
 		return fmt.Errorf("The monthly payment is not enough to cover interest and escrow payment for the first month (total $%v). Please enter a higher monthly payment.", minPayment.Div(aHundred).Round(2).String())
 	}
 	return nil
+}
+
+func patchLoanFields(loanData domain.UpdateLoanData, patchData domain.UpdateLoanInput) domain.UpdateLoanData {
+	if patchData.LoanName != nil {
+		loanData.Name = *patchData.LoanName
+	}
+	if patchData.StartingPrincipal != nil {
+		loanData.LoanData.StartingPrincipal = *patchData.StartingPrincipal
+	}
+	if patchData.YearlyInterestRate != nil {
+		loanData.LoanData.YearlyInterestRate = *patchData.YearlyInterestRate
+	}
+	if patchData.MonthlyPayment != nil {
+		loanData.LoanData.MonthlyPayment = *patchData.MonthlyPayment
+	}
+	if patchData.EscrowPayment != nil {
+		loanData.LoanData.EscrowPayment = *patchData.EscrowPayment
+	}
+	if patchData.StartDate != nil {
+		loanData.LoanData.StartDate = *patchData.StartDate
+	}
+	return loanData
 }
