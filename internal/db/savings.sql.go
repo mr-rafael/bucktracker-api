@@ -171,3 +171,125 @@ func (q *Queries) GetSavingsByUserID(ctx context.Context, userID pgtype.UUID) ([
 	}
 	return items, nil
 }
+
+const getSavingsOriginalData = `-- name: GetSavingsOriginalData :one
+SELECT starting_capital,
+    yearly_interest_rate,
+    interest_rate_type,
+    monthly_contribution,
+    duration_years,
+    tax_rate,
+    yearly_inflation_rate,
+    start_date
+FROM savings
+WHERE id = $1 AND user_id = $2
+`
+
+type GetSavingsOriginalDataParams struct {
+	ID     pgtype.UUID
+	UserID pgtype.UUID
+}
+
+type GetSavingsOriginalDataRow struct {
+	StartingCapital     int32
+	YearlyInterestRate  string
+	InterestRateType    string
+	MonthlyContribution int32
+	DurationYears       int32
+	TaxRate             string
+	YearlyInflationRate pgtype.Text
+	StartDate           pgtype.Timestamptz
+}
+
+func (q *Queries) GetSavingsOriginalData(ctx context.Context, arg GetSavingsOriginalDataParams) (GetSavingsOriginalDataRow, error) {
+	row := q.db.QueryRow(ctx, getSavingsOriginalData, arg.ID, arg.UserID)
+	var i GetSavingsOriginalDataRow
+	err := row.Scan(
+		&i.StartingCapital,
+		&i.YearlyInterestRate,
+		&i.InterestRateType,
+		&i.MonthlyContribution,
+		&i.DurationYears,
+		&i.TaxRate,
+		&i.YearlyInflationRate,
+		&i.StartDate,
+	)
+	return i, err
+}
+
+const updateSavings = `-- name: UpdateSavings :one
+UPDATE savings
+SET name = $1,
+    starting_capital = $2,
+    yearly_interest_rate = $3,
+    interest_rate_type = $4,
+    monthly_contribution = $5,
+    duration_years = $6,
+    tax_rate = $7,
+    yearly_inflation_rate = $8,
+    start_date = $9,
+    monthly_interest_rate = $10,
+    total_interest_earnings = $11,
+    total_deposited = $12,
+    rate_of_return = $13,
+    inflation_adjusted_ror = $14
+WHERE id = $1 AND user_id = $2
+RETURNING id, user_id, name, starting_capital, yearly_interest_rate, interest_rate_type, monthly_contribution, duration_years, tax_rate, yearly_inflation_rate, start_date, monthly_interest_rate, total_interest_earnings, rate_of_return, inflation_adjusted_ror, created_at, total_deposited
+`
+
+type UpdateSavingsParams struct {
+	Name                  string
+	StartingCapital       int32
+	YearlyInterestRate    string
+	InterestRateType      string
+	MonthlyContribution   int32
+	DurationYears         int32
+	TaxRate               string
+	YearlyInflationRate   pgtype.Text
+	StartDate             pgtype.Timestamptz
+	MonthlyInterestRate   string
+	TotalInterestEarnings int32
+	TotalDeposited        int32
+	RateOfReturn          string
+	InflationAdjustedRor  string
+}
+
+func (q *Queries) UpdateSavings(ctx context.Context, arg UpdateSavingsParams) (Saving, error) {
+	row := q.db.QueryRow(ctx, updateSavings,
+		arg.Name,
+		arg.StartingCapital,
+		arg.YearlyInterestRate,
+		arg.InterestRateType,
+		arg.MonthlyContribution,
+		arg.DurationYears,
+		arg.TaxRate,
+		arg.YearlyInflationRate,
+		arg.StartDate,
+		arg.MonthlyInterestRate,
+		arg.TotalInterestEarnings,
+		arg.TotalDeposited,
+		arg.RateOfReturn,
+		arg.InflationAdjustedRor,
+	)
+	var i Saving
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.Name,
+		&i.StartingCapital,
+		&i.YearlyInterestRate,
+		&i.InterestRateType,
+		&i.MonthlyContribution,
+		&i.DurationYears,
+		&i.TaxRate,
+		&i.YearlyInflationRate,
+		&i.StartDate,
+		&i.MonthlyInterestRate,
+		&i.TotalInterestEarnings,
+		&i.RateOfReturn,
+		&i.InflationAdjustedRor,
+		&i.CreatedAt,
+		&i.TotalDeposited,
+	)
+	return i, err
+}
