@@ -98,6 +98,38 @@ func (handler *SavingsHandler) HandleGetSavings(writer http.ResponseWriter, requ
 	respondWithJSON(writer, mapper.ToGetSavingsResponse(result), http.StatusOK)
 }
 
+func (handler *SavingsHandler) HandleUpdateSavings(writer http.ResponseWriter, request *http.Request) {
+	userID := request.Context().Value(userIDKey).(string)
+	planID := request.PathValue("id")
+
+	userUUID, err := uuid.Parse(userID)
+	if err != nil {
+		respondWithErrorCode(writer, "failed to get user ID from context", http.StatusUnauthorized)
+		return
+	}
+	planUUID, err := uuid.Parse(planID)
+	if err != nil {
+		respondWithErrorCode(writer, "invalid plan ID in URL", http.StatusUnauthorized)
+		return
+	}
+
+	decoder := json.NewDecoder(request.Body)
+	reqParams := dto.SavingsUpdateRequestParams{}
+	err = decoder.Decode(&reqParams)
+	if err != nil {
+		respondWithErrorCode(writer, "received bad update savings request", http.StatusBadRequest)
+	}
+
+	result, err := handler.savingsService.UpdateSavings(context.Background(), mapper.ToUpdateSavingsInput(planUUID, userUUID, reqParams))
+	fmt.Printf("From the service, received the yearly interest rate: %v\n", result.YearlyInterestRate)
+	if err != nil {
+		respondWithErrorCode(writer, fmt.Sprintf("attempt to fetch plan %v by user %v", planUUID, userUUID), http.StatusUnauthorized)
+		return
+	}
+
+	respondWithJSON(writer, mapper.ToSaveSavingsResponse(result), http.StatusOK)
+}
+
 func (handler *SavingsHandler) HandleDeleteSavings(writer http.ResponseWriter, request *http.Request) {
 	userID := request.Context().Value(userIDKey).(string)
 	planID := request.PathValue("id")

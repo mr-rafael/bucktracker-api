@@ -35,7 +35,7 @@ func ToSaveSavingsResponse(savings db.Saving) dto.SavingsSaveResponseParams {
 		ID:                    savings.ID.String(),
 		Name:                  savings.Name,
 		StartingCapital:       int(savings.StartingCapital),
-		YearlyInterestRate:    savings.YearlyInflationRate.String,
+		YearlyInterestRate:    savings.YearlyInterestRate,
 		InterestRateType:      savings.InterestRateType,
 		MonthlyContribution:   int(savings.MonthlyContribution),
 		DurationYears:         int(savings.DurationYears),
@@ -118,6 +118,23 @@ func ToSavingsInput(input dto.SavingsRequestParams) domain.SavingsInput {
 func ToSaveSavingsInput(userId uuid.UUID, input dto.SavingsSaveRequestParams) domain.SaveSavingsInput {
 	savings := domain.SaveSavingsInput{
 		UserID:              userId,
+		PlanName:            input.Name,
+		StartingCapital:     input.StartingCapital,
+		YearlyInterestRate:  input.YearlyInterestRate,
+		InterestRateType:    input.InterestRateType,
+		MonthlyContribution: input.MonthlyContribution,
+		DurationYears:       input.DurationYears,
+		TaxRate:             input.TaxRate,
+		YearlyInflationRate: input.YearlyInflationRate,
+		StartDate:           input.StartDate,
+	}
+	return savings
+}
+
+func ToUpdateSavingsInput(savingsID uuid.UUID, userID uuid.UUID, input dto.SavingsUpdateRequestParams) domain.UpdateSavingsInput {
+	savings := domain.UpdateSavingsInput{
+		ID:                  savingsID,
+		UserID:              userID,
 		PlanName:            input.Name,
 		StartingCapital:     input.StartingCapital,
 		YearlyInterestRate:  input.YearlyInterestRate,

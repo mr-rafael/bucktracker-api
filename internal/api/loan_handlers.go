@@ -116,7 +116,7 @@ func (handler *LoanHandler) HandleUpdateLoan(writer http.ResponseWriter, request
 	reqParams := dto.LoanUpdateRequestParams{}
 	err = decoder.Decode(&reqParams)
 	if err != nil {
-		respondWithErrorCode(writer, "received bad update savings request", http.StatusBadRequest)
+		respondWithErrorCode(writer, "received bad update loan request", http.StatusBadRequest)
 		return
 	}
 

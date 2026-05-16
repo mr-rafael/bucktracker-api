@@ -99,6 +99,8 @@ func (s *SavingsService) UpdateSavings(ctx context.Context, input domain.UpdateS
 		return db.Saving{}, err
 	}
 
+	fmt.Printf("After updating savings, got yearly interest rate: %v\n", result.YearlyInterestRate)
+
 	return result, nil
 }
 

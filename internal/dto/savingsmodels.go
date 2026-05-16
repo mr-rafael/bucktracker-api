@@ -88,6 +88,18 @@ type SavingsSaveRequestParams struct {
 	StartDate           string `json:"startDate"`
 }
 
+type SavingsUpdateRequestParams struct {
+	Name                *string `json:"name"`
+	StartingCapital     *int    `json:"startingCapital"`
+	YearlyInterestRate  *string `json:"yearlyInterestRate"`
+	InterestRateType    *string `json:"interestRateType"`
+	MonthlyContribution *int    `json:"monthlyContribution"`
+	DurationYears       *int    `json:"durationYears"`
+	TaxRate             *string `json:"taxRate"`
+	YearlyInflationRate *string `json:"yearlyInflationRate"`
+	StartDate           *string `json:"startDate"`
+}
+
 type SavingsListResponseParams struct {
 	Plans []SavingsInfo `json:"plans"`
 }
