@@ -195,6 +195,79 @@ func TestGetLoansByUser(t *testing.T) {
 	}
 }
 
+func TestUpdateLoan(t *testing.T) {
+	ctx := context.Background()
+	queries := initializeQueries(ctx)
+	repo := NewLoansRepo(queries)
+
+	test_user_id, err := uuid.Parse("af38df43-3ced-4869-9930-93a0fa0cf1e0")
+	if err != nil {
+		log.Fatalf("failed to parse the test user uuid: %v", err)
+	}
+
+	originalData := dto.LoanRequestParams{
+		StartingPrincipal:  0,
+		YearlyInterestRate: "0",
+		MonthlyPayment:     0,
+		EscrowPayment:      0,
+		StartDate:          "1970-01-01",
+	}
+	params := domain.LoanPaymentPlan{
+		ID:                  uuid.Nil,
+		UserID:              test_user_id,
+		Name:                "test",
+		OriginalData:        domain.LoansInput(originalData),
+		StartingPrincipal:   decimal.Zero,
+		CurrentPrincipal:    decimal.Zero,
+		InterestMultiplierM: decimal.Zero,
+		PaymentM:            decimal.Zero,
+		EscrowM:             decimal.Zero,
+		Date:                time.Now(),
+		DurationMonths:      0,
+		TotalExpenditure:    decimal.Zero,
+		TotalPaid:           decimal.Zero,
+		CostOfCreditPercent: decimal.Zero,
+	}
+	status := domain.LoanStatus{
+		Date:          time.Now(),
+		Payment:       decimal.Zero,
+		Interest:      decimal.Zero,
+		OtherPayments: decimal.Zero,
+		Paydown:       decimal.Zero,
+		Principal:     decimal.Zero,
+	}
+	params.Plan = append(params.Plan, status)
+
+	result, err := repo.SaveLoanPaymentPlan(ctx, params)
+
+	updatedName := "updatedTest"
+	updatedPrincipal := 100
+	updatedInterest := "1.05"
+
+	params.ID = result.ID.Bytes
+	params.Name = updatedName
+	params.OriginalData.StartingPrincipal = updatedPrincipal
+	params.OriginalData.YearlyInterestRate = updatedInterest
+
+	got, err := repo.UpdateLoan(ctx, params)
+
+	want := db.Loan{
+		Name:               updatedName,
+		StartingPrincipal:  int32(updatedPrincipal),
+		YearlyInterestRate: updatedInterest,
+	}
+
+	if got.Name != want.Name {
+		log.Fatalf("Loan name returned from the database (%v) doesn't match the expected one (%v).", got.Name, want.Name)
+	}
+	if got.StartingPrincipal != want.StartingPrincipal {
+		log.Fatalf("Loan starting principal returned from the database (%v) doesn't match the expected one (%v).", got.StartingPrincipal, want.StartingPrincipal)
+	}
+	if got.YearlyInterestRate != want.YearlyInterestRate {
+		log.Fatalf("Loan interest rate returned from the database (%v) doesn't match the expected one (%v).", got.StartingPrincipal, want.StartingPrincipal)
+	}
+}
+
 func TestDeleteLoan(t *testing.T) {
 	ctx := context.Background()
 	queries := initializeQueries(ctx)
