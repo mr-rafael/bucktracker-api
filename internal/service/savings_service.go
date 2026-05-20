@@ -88,7 +88,7 @@ func (s *SavingsService) UpdateSavings(ctx context.Context, input domain.UpdateS
 	}
 	patchedData := patchSavingsFields(originalData, input)
 
-	plan, err := initializeSavingsPlan(originalData.SavingsData, input.UserID, patchedData.Name)
+	plan, err := initializeSavingsPlan(patchedData.SavingsData, input.UserID, patchedData.Name)
 	if err != nil {
 		return db.Saving{}, fmt.Errorf("failed to initialize the savings plan struct: %v", err)
 	}
@@ -98,8 +98,6 @@ func (s *SavingsService) UpdateSavings(ctx context.Context, input domain.UpdateS
 	if err != nil {
 		return db.Saving{}, err
 	}
-
-	fmt.Printf("After updating savings, got yearly interest rate: %v\n", result.YearlyInterestRate)
 
 	return result, nil
 }

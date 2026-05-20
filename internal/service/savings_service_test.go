@@ -352,6 +352,69 @@ func TestSaveSavingsPlan(t *testing.T) {
 	}
 }
 
+func TestUpdateSavings(t *testing.T) {
+	originalName := "Original Name"
+	updatedName := "Updated Name"
+	originalCapital := 400000
+	updatedCapital := 500000
+	originalInterest := "4.2"
+	updatedInterest := "4.75"
+	mockSavingsRepo := &MockSavingsRepo{
+		GetSavingsInitialDataFunc: func(ctx context.Context, planID uuid.UUID, userID uuid.UUID) (domain.UpdateSavingsData, error) {
+			return domain.UpdateSavingsData{
+				ID:   planID,
+				Name: originalName,
+				SavingsData: domain.SavingsInput{
+					StartingCapital:     originalCapital,
+					YearlyInterestRate:  originalInterest,
+					InterestRateType:    "APY",
+					MonthlyContribution: 100,
+					DurationYears:       1,
+					TaxRate:             "12",
+					YearlyInflationRate: "8",
+					StartDate:           "1970-01-01",
+				},
+			}, nil
+		},
+		UpdateSavingsFunc: func(ctx context.Context, plan domain.SavingsPlan) (db.Saving, error) {
+			return db.Saving{
+				Name:               plan.Name,
+				StartingCapital:    int32(plan.OriginalData.StartingCapital),
+				YearlyInterestRate: plan.OriginalData.YearlyInterestRate,
+			}, nil
+		},
+	}
+	service := NewSavingsService(mockSavingsRepo)
+	ctx := context.Background()
+
+	input := domain.UpdateSavingsInput{
+		PlanName:           &updatedName,
+		StartingCapital:    &updatedCapital,
+		YearlyInterestRate: &updatedInterest,
+	}
+
+	got, err := service.UpdateSavings(ctx, input)
+	if err != nil {
+		log.Fatalf("Error updating the savings plan: %v", err)
+	}
+
+	want := db.Saving{
+		Name:               updatedName,
+		StartingCapital:    int32(updatedCapital),
+		YearlyInterestRate: updatedInterest,
+	}
+
+	if want.Name != got.Name {
+		log.Fatalf("Updated loan name returned (%v) did not match the expected one (%v).", got.Name, want.Name)
+	}
+	if want.StartingCapital != got.StartingCapital {
+		log.Fatalf("Updated capital returned (%v cents) did not match the expected one (%v cents).", got.StartingCapital, want.StartingCapital)
+	}
+	if want.YearlyInterestRate != got.YearlyInterestRate {
+		log.Fatalf("Updated interest rate returned (%v) did not match the expected one (%v).", got.YearlyInterestRate, want.YearlyInterestRate)
+	}
+}
+
 func TestGetSavingsPlansByUserNoPlans(t *testing.T) {
 	mockUserID := uuid.Nil
 	mockSavingsRepo := &MockSavingsRepo{

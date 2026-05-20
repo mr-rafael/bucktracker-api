@@ -326,13 +326,13 @@ func TestUpdateLoan(t *testing.T) {
 	}
 
 	if want.Name != got.Name {
-		log.Fatalf("Updated loan name returned (%v) did not match the expected one (%v).", want.Name, got.Name)
+		log.Fatalf("Updated loan name returned (%v) did not match the expected one (%v).", got.Name, want.Name)
 	}
 	if want.StartingPrincipal != got.StartingPrincipal {
-		log.Fatalf("Updated principal returned (%v cents) did not match the expected one (%v cents).", want.StartingPrincipal, got.StartingPrincipal)
+		log.Fatalf("Updated principal returned (%v cents) did not match the expected one (%v cents).", got.StartingPrincipal, want.StartingPrincipal)
 	}
 	if want.YearlyInterestRate != got.YearlyInterestRate {
-		log.Fatalf("Updated interest rate returned (%v) did not match the expected one (%v).", want.YearlyInterestRate, got.YearlyInterestRate)
+		log.Fatalf("Updated interest rate returned (%v) did not match the expected one (%v).", got.YearlyInterestRate, want.YearlyInterestRate)
 	}
 }
 
