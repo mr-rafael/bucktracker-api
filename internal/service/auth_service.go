@@ -129,7 +129,7 @@ func (s *AuthService) Login(ctx context.Context, input LoginInput) (LoginInfo, e
 
 	err = bcrypt.CompareHashAndPassword([]byte(userInfo.PasswordHash), []byte(input.Password))
 	if err != nil {
-		return LoginInfo{}, fmt.Errorf("password hash mismatch: got user info.")
+		return LoginInfo{}, fmt.Errorf("password hash mismatch.")
 	}
 
 	accessToken, err := auth.GenerateAccessToken(userInfo.ID.String(), s.accessSecret)
