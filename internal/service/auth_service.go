@@ -159,6 +159,8 @@ func (s *AuthService) Login(ctx context.Context, input LoginInput) (LoginInfo, e
 
 func (s *AuthService) Refresh(ctx context.Context, input RefreshInput) (RefreshInfo, error) {
 
+	fmt.Printf("Entering the refresh service with token: %v\n", input.RefreshToken)
+
 	refreshTokenHash := fmt.Sprintf("%x", sha256.Sum256([]byte(input.RefreshToken)))
 
 	tokenData, err := s.authRepo.GetTokenByHash(ctx, refreshTokenHash)
@@ -166,13 +168,19 @@ func (s *AuthService) Refresh(ctx context.Context, input RefreshInput) (RefreshI
 		return RefreshInfo{}, fmt.Errorf("failed to find refresh token for user '%v' in database: %v", tokenData.UserID, err)
 	}
 
+	fmt.Printf("Successfully found the token data: %v\n", tokenData)
+
 	if tokenData.Revoked.Bool {
 		return RefreshInfo{}, fmt.Errorf("attempt to refresh with revoked token for user: %v", tokenData.UserID)
 	}
 
+	fmt.Printf("Successfully passed the revoked check\n")
+
 	if tokenData.ExpiresAt.Time.Before(time.Now()) {
 		return RefreshInfo{}, fmt.Errorf("refresh attempt with expired token.")
 	}
+
+	fmt.Printf("Successfully passed the expiration check\n")
 
 	accessToken, err := auth.GenerateAccessToken(tokenData.UserID.String(), s.accessSecret)
 	if err != nil {
