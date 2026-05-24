@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -30,15 +31,24 @@ func (handler *LoanHandler) HandleCalculateLoan(writer http.ResponseWriter, requ
 	}
 
 	result, err := handler.loanService.CalculateLoanPaymentPlan(mapper.ToLoanInput(reqParams))
+	var inputErr service.InputError
 	if err != nil {
-		respondWithError(writer, fmt.Sprintf("Error calculating loan payment plan: %v", err), fmt.Sprintf("Error calculating loan payment plan: %v", err), http.StatusInternalServerError)
-		return
+		switch {
+		case errors.As(err, &inputErr):
+			respondWithError(writer, err.Error(), err.Error(), http.StatusBadRequest)
+		default:
+			respondWithError(writer, err.Error(), err.Error(), http.StatusInternalServerError)
+		}
 	}
 	respondWithJSON(writer, mapper.ToLoanResponse(result), http.StatusOK)
 }
 
 func (handler *LoanHandler) HandleSaveLoan(writer http.ResponseWriter, request *http.Request) {
-	userID := request.Context().Value(userIDKey).(string)
+	userID, ok := request.Context().Value(userIDKey).(string)
+	if !ok {
+		respondWithErrorCode(writer, "failed to get user ID from context", http.StatusUnauthorized)
+		return
+	}
 	userUUID, err := uuid.Parse(userID)
 	if err != nil {
 		respondWithErrorCode(writer, "failed to get user ID from context", http.StatusUnauthorized)
@@ -55,15 +65,26 @@ func (handler *LoanHandler) HandleSaveLoan(writer http.ResponseWriter, request *
 
 	result, err := handler.loanService.SaveLoanPaymentPlan(context.Background(), mapper.ToSaveLoanInput(userUUID, reqParams))
 	if err != nil {
-		respondWithError(writer, fmt.Sprintf("Error saving the plan: %v", err), fmt.Sprintf("Error saving the plan: %v", err), http.StatusInternalServerError)
-		return
+		var inputErr service.InputError
+		if err != nil {
+			switch {
+			case errors.As(err, &inputErr):
+				respondWithError(writer, err.Error(), err.Error(), http.StatusBadRequest)
+			default:
+				respondWithError(writer, err.Error(), err.Error(), http.StatusInternalServerError)
+			}
+		}
 	}
 
 	respondWithJSON(writer, mapper.ToSaveLoanResponse(result), http.StatusCreated)
 }
 
 func (handler *LoanHandler) HandleListLoans(writer http.ResponseWriter, request *http.Request) {
-	userID := request.Context().Value(userIDKey).(string)
+	userID, ok := request.Context().Value(userIDKey).(string)
+	if !ok {
+		respondWithErrorCode(writer, "failed to get user ID from context", http.StatusUnauthorized)
+		return
+	}
 	userUUID, err := uuid.Parse(userID)
 	if err != nil {
 		respondWithErrorCode(writer, "failed to get user ID from context", http.StatusUnauthorized)
@@ -76,7 +97,11 @@ func (handler *LoanHandler) HandleListLoans(writer http.ResponseWriter, request 
 }
 
 func (handler *LoanHandler) HandleGetLoan(writer http.ResponseWriter, request *http.Request) {
-	userID := request.Context().Value(userIDKey).(string)
+	userID, ok := request.Context().Value(userIDKey).(string)
+	if !ok {
+		respondWithErrorCode(writer, "failed to get user ID from context", http.StatusUnauthorized)
+		return
+	}
 	planID := request.PathValue("id")
 
 	userUUID, err := uuid.Parse(userID)
@@ -100,7 +125,11 @@ func (handler *LoanHandler) HandleGetLoan(writer http.ResponseWriter, request *h
 }
 
 func (handler *LoanHandler) HandleUpdateLoan(writer http.ResponseWriter, request *http.Request) {
-	userID := request.Context().Value(userIDKey).(string)
+	userID, ok := request.Context().Value(userIDKey).(string)
+	if !ok {
+		respondWithErrorCode(writer, "failed to get user ID from context", http.StatusUnauthorized)
+		return
+	}
 	userUUID, err := uuid.Parse(userID)
 	if err != nil {
 		respondWithErrorCode(writer, "failed to get user ID from context", http.StatusUnauthorized)
@@ -130,7 +159,11 @@ func (handler *LoanHandler) HandleUpdateLoan(writer http.ResponseWriter, request
 }
 
 func (handler *LoanHandler) HandleDeleteLoan(writer http.ResponseWriter, request *http.Request) {
-	userID := request.Context().Value(userIDKey).(string)
+	userID, ok := request.Context().Value(userIDKey).(string)
+	if !ok {
+		respondWithErrorCode(writer, "failed to get user ID from context", http.StatusUnauthorized)
+		return
+	}
 	planID := request.PathValue("id")
 
 	userUUID, err := uuid.Parse(userID)

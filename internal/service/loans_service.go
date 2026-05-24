@@ -11,6 +11,14 @@ import (
 	"github.com/shopspring/decimal"
 )
 
+type InputError struct {
+	Message string
+}
+
+func (e InputError) Error() string {
+	return e.Message
+}
+
 type LoansService struct {
 	loansRepo LoansRepository
 }
@@ -41,7 +49,7 @@ const maxPaymentYears = 30
 func (s *LoansService) CalculateLoanPaymentPlan(input domain.LoansInput) (domain.LoanPaymentPlan, error) {
 	plan, err := initializePaymentPlan(input, uuid.Nil, "")
 	if err != nil {
-		return domain.LoanPaymentPlan{}, fmt.Errorf("failed to initialize the payment plan struct: %v", err)
+		return domain.LoanPaymentPlan{}, err
 	}
 
 	plan, err = calculatePaymentPlan(plan)
@@ -55,7 +63,7 @@ func (s *LoansService) CalculateLoanPaymentPlan(input domain.LoansInput) (domain
 func (s *LoansService) SaveLoanPaymentPlan(ctx context.Context, input domain.SaveLoanInput) (db.Loan, error) {
 	plan, err := initializePaymentPlan(saveInputToLoanInput(input), input.UserID, input.LoanName)
 	if err != nil {
-		return db.Loan{}, fmt.Errorf("failed to initialize the payment plan struct: %v", err)
+		return db.Loan{}, err
 	}
 
 	plan, err = calculatePaymentPlan(plan)
@@ -95,7 +103,7 @@ func (s *LoansService) UpdateLoan(ctx context.Context, input domain.UpdateLoanIn
 
 	plan, err := initializePaymentPlan(patchedData.LoanData, input.UserID, patchedData.Name)
 	if err != nil {
-		return db.Loan{}, fmt.Errorf("failed to initialize the payment plan struct: %v.", err)
+		return db.Loan{}, err
 	}
 	plan, err = calculatePaymentPlan(plan)
 	if err != nil {
@@ -143,35 +151,35 @@ func initializePaymentPlan(input domain.LoansInput, userID uuid.UUID, name strin
 
 	startingPrincipal := decimal.NewFromInt(int64(input.StartingPrincipal))
 	if !decimalIsBetween(startingPrincipal, minLoanCents, maxLoanCents) {
-		return domain.LoanPaymentPlan{}, fmt.Errorf("invalid starting principal: '%v'. the accepted range is 0.01 - 1,000,000,000", startingPrincipal.Div(oneHundred).Round(2))
+		return domain.LoanPaymentPlan{}, InputError{Message: fmt.Sprintf("invalid starting principal: '%v'. the accepted range is 0.01 - 1,000,000,000", startingPrincipal.Div(oneHundred).Round(2))}
 	}
 	plan.StartingPrincipal = startingPrincipal
 	plan.CurrentPrincipal = startingPrincipal
 
 	monthlyInterestRate, err := getMonthlyAPRMultiplier(input.YearlyInterestRate)
 	if !stringNumberBetween(input.YearlyInterestRate, minInterestRate, maxInterestRate) {
-		return domain.LoanPaymentPlan{}, fmt.Errorf("invalid interest rate: '%v'. the accepted range is 0%% - 100%%", input.YearlyInterestRate)
+		return domain.LoanPaymentPlan{}, InputError{Message: fmt.Sprintf("invalid interest rate: '%v'. the accepted range is 0%% - 100%%", input.YearlyInterestRate)}
 	}
 	if err != nil {
-		return domain.LoanPaymentPlan{}, fmt.Errorf("invalid interest rate: '%v'", input.YearlyInterestRate)
+		return domain.LoanPaymentPlan{}, InputError{Message: fmt.Sprintf("invalid interest rate: '%v'", input.YearlyInterestRate)}
 	}
 	plan.InterestMultiplierM = monthlyInterestRate
 
 	monthlyPayment := decimal.NewFromInt(int64(input.MonthlyPayment))
 	if !decimalIsBetween(monthlyPayment, minMonthlyPaymentCents, maxMonthlyPaymentCents) {
-		return domain.LoanPaymentPlan{}, fmt.Errorf("invalid monthly payments: '%v'. the accepted range is 0.01 - 1,000,000,000", monthlyPayment.Div(oneHundred).Round(2))
+		return domain.LoanPaymentPlan{}, InputError{Message: fmt.Sprintf("invalid monthly payments: '%v'. the accepted range is 0.01 - 1,000,000,000", monthlyPayment.Div(oneHundred).Round(2))}
 	}
 	plan.PaymentM = monthlyPayment
 
 	escrow := decimal.NewFromInt(int64(input.EscrowPayment))
 	if !decimalIsBetween(escrow, minEscrowCents, maxEscrowCents) {
-		return domain.LoanPaymentPlan{}, fmt.Errorf("invalid escrow payment: '%v'. the accepted range is 0.01 - 1,000,000,000", escrow.Div(oneHundred).Round(2))
+		return domain.LoanPaymentPlan{}, InputError{Message: fmt.Sprintf("invalid escrow payment: '%v'. the accepted range is 0.01 - 1,000,000,000", escrow.Div(oneHundred).Round(2))}
 	}
 	plan.EscrowM = escrow
 
 	startDate, err := time.Parse("2006-01-02", input.StartDate)
 	if err != nil {
-		return domain.LoanPaymentPlan{}, fmt.Errorf("invalid start date: %v", input.StartDate)
+		return domain.LoanPaymentPlan{}, InputError{Message: fmt.Sprintf("invalid start date: %v", input.StartDate)}
 	}
 	plan.Date = startDate
 
