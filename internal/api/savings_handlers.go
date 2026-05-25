@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -31,13 +32,23 @@ func (handler *SavingsHandler) HandleCalculateSavings(writer http.ResponseWriter
 
 	result, err := handler.savingsService.CalculateSavingsPlan(mapper.ToSavingsInput(reqParams))
 	if err != nil {
-		respondWithError(writer, fmt.Sprintf("Error calculating savings plan: %v", err), fmt.Sprintf("Error calculating savings plan: %v", err), http.StatusInternalServerError)
+		var inputErr service.SavingsInputError
+		switch {
+		case errors.As(err, &inputErr):
+			respondWithError(writer, err.Error(), err.Error(), http.StatusBadRequest)
+		default:
+			respondWithError(writer, err.Error(), err.Error(), http.StatusInternalServerError)
+		}
 	}
 	respondWithJSON(writer, mapper.ToSavingsResponse(result), http.StatusOK)
 }
 
 func (handler *SavingsHandler) HandleSaveSavings(writer http.ResponseWriter, request *http.Request) {
-	userID := request.Context().Value(userIDKey).(string)
+	userID, ok := request.Context().Value(userIDKey).(string)
+	if !ok {
+		respondWithErrorCode(writer, "failed to get user ID from context", http.StatusUnauthorized)
+		return
+	}
 	userUUID, err := uuid.Parse(userID)
 	if err != nil {
 		respondWithErrorCode(writer, "failed to get user ID from context", http.StatusUnauthorized)
@@ -54,15 +65,24 @@ func (handler *SavingsHandler) HandleSaveSavings(writer http.ResponseWriter, req
 
 	result, err := handler.savingsService.SaveSavingsPlan(context.Background(), mapper.ToSaveSavingsInput(userUUID, reqParams))
 	if err != nil {
-		respondWithError(writer, fmt.Sprintf("Error saving the plan: %v", err), fmt.Sprintf("Error saving the plan: %v", err), http.StatusInternalServerError)
-		return
+		var inputErr service.SavingsInputError
+		switch {
+		case errors.As(err, &inputErr):
+			respondWithError(writer, err.Error(), err.Error(), http.StatusBadRequest)
+		default:
+			respondWithError(writer, err.Error(), err.Error(), http.StatusInternalServerError)
+		}
 	}
 
 	respondWithJSON(writer, mapper.ToSaveSavingsResponse(result), http.StatusCreated)
 }
 
 func (handler *SavingsHandler) HandleListSavings(writer http.ResponseWriter, request *http.Request) {
-	userID := request.Context().Value(userIDKey).(string)
+	userID, ok := request.Context().Value(userIDKey).(string)
+	if !ok {
+		respondWithErrorCode(writer, "failed to get user ID from context", http.StatusUnauthorized)
+		return
+	}
 	userUUID, err := uuid.Parse(userID)
 	if err != nil {
 		respondWithErrorCode(writer, "failed to get user ID from context", http.StatusUnauthorized)
@@ -75,7 +95,11 @@ func (handler *SavingsHandler) HandleListSavings(writer http.ResponseWriter, req
 }
 
 func (handler *SavingsHandler) HandleGetSavings(writer http.ResponseWriter, request *http.Request) {
-	userID := request.Context().Value(userIDKey).(string)
+	userID, ok := request.Context().Value(userIDKey).(string)
+	if !ok {
+		respondWithErrorCode(writer, "failed to get user ID from context", http.StatusUnauthorized)
+		return
+	}
 	planID := request.PathValue("id")
 
 	userUUID, err := uuid.Parse(userID)
@@ -99,7 +123,11 @@ func (handler *SavingsHandler) HandleGetSavings(writer http.ResponseWriter, requ
 }
 
 func (handler *SavingsHandler) HandleUpdateSavings(writer http.ResponseWriter, request *http.Request) {
-	userID := request.Context().Value(userIDKey).(string)
+	userID, ok := request.Context().Value(userIDKey).(string)
+	if !ok {
+		respondWithErrorCode(writer, "failed to get user ID from context", http.StatusUnauthorized)
+		return
+	}
 	planID := request.PathValue("id")
 
 	userUUID, err := uuid.Parse(userID)
@@ -123,15 +151,24 @@ func (handler *SavingsHandler) HandleUpdateSavings(writer http.ResponseWriter, r
 	result, err := handler.savingsService.UpdateSavings(context.Background(), mapper.ToUpdateSavingsInput(planUUID, userUUID, reqParams))
 	fmt.Printf("From the service, received the yearly interest rate: %v\n", result.YearlyInterestRate)
 	if err != nil {
-		respondWithErrorCode(writer, fmt.Sprintf("attempt to fetch plan %v by user %v", planUUID, userUUID), http.StatusUnauthorized)
-		return
+		var inputErr service.SavingsInputError
+		switch {
+		case errors.As(err, &inputErr):
+			respondWithError(writer, err.Error(), err.Error(), http.StatusBadRequest)
+		default:
+			respondWithError(writer, err.Error(), err.Error(), http.StatusInternalServerError)
+		}
 	}
 
 	respondWithJSON(writer, mapper.ToSaveSavingsResponse(result), http.StatusOK)
 }
 
 func (handler *SavingsHandler) HandleDeleteSavings(writer http.ResponseWriter, request *http.Request) {
-	userID := request.Context().Value(userIDKey).(string)
+	userID, ok := request.Context().Value(userIDKey).(string)
+	if !ok {
+		respondWithErrorCode(writer, "failed to get user ID from context", http.StatusUnauthorized)
+		return
+	}
 	planID := request.PathValue("id")
 
 	userUUID, err := uuid.Parse(userID)

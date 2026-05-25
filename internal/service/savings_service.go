@@ -11,6 +11,14 @@ import (
 	"github.com/shopspring/decimal"
 )
 
+type SavingsInputError struct {
+	Message string
+}
+
+func (e SavingsInputError) Error() string {
+	return e.Message
+}
+
 type SavingsService struct {
 	savingsRepo SavingsRepository
 }
@@ -137,7 +145,7 @@ func initializeSavingsPlan(input domain.SavingsInput, userID uuid.UUID, name str
 
 	startingCapital := decimal.NewFromInt(int64(input.StartingCapital))
 	if !decimalIsBetween(startingCapital, minStartCapCents, maxStartCapCents) {
-		return domain.SavingsPlan{}, fmt.Errorf("invalid starting amount '%v'. the valid range is 0.01-1,000,000,000", startingCapital.Div(aHundred).Round(2))
+		return domain.SavingsPlan{}, SavingsInputError{Message: fmt.Sprintf("invalid starting amount '%v'. the valid range is 0.01-1,000,000,000", startingCapital.Div(aHundred).Round(2))}
 	}
 	plan.StartingCapital = startingCapital
 	plan.CurrentCapital = startingCapital
@@ -145,22 +153,22 @@ func initializeSavingsPlan(input domain.SavingsInput, userID uuid.UUID, name str
 
 	monthlyInterestRate, err := toMonthlyInterestMultiplier(input.YearlyInterestRate, input.InterestRateType)
 	if err != nil {
-		return domain.SavingsPlan{}, fmt.Errorf("invalid interest rate: %v", input.YearlyInterestRate)
+		return domain.SavingsPlan{}, SavingsInputError{Message: fmt.Sprintf("invalid interest rate: %v", input.YearlyInterestRate)}
 	}
 	if !decimalIsBetween(monthlyInterestRate, minSavIntRate, maxSavIntRate) {
-		return domain.SavingsPlan{}, fmt.Errorf("invalid interest rate. The valid range is 0.001-1")
+		return domain.SavingsPlan{}, SavingsInputError{Message: "invalid interest rate. The valid range is 0.001-1"}
 	}
 	plan.InterestMultiplierM = monthlyInterestRate
 
 	durationMonths := decimal.NewFromInt(int64(input.DurationYears)).Mul(decimal.NewFromInt(12))
 	if !decimalIsBetween(decimal.NewFromInt32(int32(input.DurationYears)), minDurYears, maxDurYears) {
-		return domain.SavingsPlan{}, fmt.Errorf("invalid plan duration. The valid range is %v-%v", minDurYears, maxDurYears)
+		return domain.SavingsPlan{}, SavingsInputError{Message: fmt.Sprintf("invalid plan duration. The valid range is %v-%v", minDurYears, maxDurYears)}
 	}
 	plan.DurationMonths = durationMonths
 
 	monthlyContribution := decimal.NewFromInt(int64(input.MonthlyContribution))
 	if !decimalIsBetween(monthlyContribution, minMonthContrib, maxMonthContrib) {
-		return domain.SavingsPlan{}, fmt.Errorf("invalid monthly contribution amount. The valid range is 0-1,000,000,000")
+		return domain.SavingsPlan{}, SavingsInputError{Message: "invalid monthly contribution amount. The valid range is 0-1,000,000,000"}
 	}
 	plan.MonthlyContribution = monthlyContribution
 
@@ -169,19 +177,19 @@ func initializeSavingsPlan(input domain.SavingsInput, userID uuid.UUID, name str
 		return domain.SavingsPlan{}, fmt.Errorf("invalid tax rate %v", input.TaxRate)
 	}
 	if !stringNumberBetween(input.TaxRate, minTaxPercent, maxTaxPercent) {
-		return domain.SavingsPlan{}, fmt.Errorf("invalid tax rate '%v'. The valid range is %v-%v%%.", input.TaxRate, minTaxPercent, maxTaxPercent)
+		return domain.SavingsPlan{}, SavingsInputError{Message: fmt.Sprintf("invalid tax rate '%v'. The valid range is %v-%v%%.", input.TaxRate, minTaxPercent, maxTaxPercent)}
 	}
 	plan.TaxMultiplierM = tax
 
 	inflation, err := toInflationMultiplier(input.YearlyInflationRate)
 	if err != nil {
-		return domain.SavingsPlan{}, fmt.Errorf("invalid inflation rate %v", input.YearlyInflationRate)
+		return domain.SavingsPlan{}, SavingsInputError{Message: fmt.Sprintf("invalid inflation rate %v", input.YearlyInflationRate)}
 	}
 	plan.InflationMultiplierY = inflation
 
 	startDate, err := time.Parse("2006-01-02", input.StartDate)
 	if err != nil {
-		return domain.SavingsPlan{}, fmt.Errorf("invalid start date: %v", input.StartDate)
+		return domain.SavingsPlan{}, SavingsInputError{Message: fmt.Sprintf("invalid start date: %v", input.StartDate)}
 	}
 	plan.Date = startDate
 

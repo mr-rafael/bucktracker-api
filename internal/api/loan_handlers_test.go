@@ -15,7 +15,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestCalculate(t *testing.T) {
+func TestCalculateLoan(t *testing.T) {
 	mockLoansRepo := &service.MockLoansRepo{}
 	service := service.NewLoansService(mockLoansRepo)
 	handler := NewLoanHandler(service)
@@ -59,6 +59,34 @@ func TestCalculateBadRequest(t *testing.T) {
 	handler.HandleCalculateLoan(rr, req)
 
 	require.Equal(t, http.StatusBadRequest, rr.Code)
+}
+
+func TestSaveLoan(t *testing.T) {
+	mockUserID, _ := uuid.NewRandom()
+
+	mockLoansRepo := &service.MockLoansRepo{}
+	service := service.NewLoansService(mockLoansRepo)
+	handler := NewLoanHandler(service)
+
+	req := httptest.NewRequest(
+		http.MethodPost,
+		"/app/loans/save",
+		strings.NewReader(`{
+   			"name": "Test 2",
+			"startingPrincipal": 10000000,
+			"yearlyInterestRate": "5",
+			"monthlyPayment": 900076,
+			"escrowPayment": 10000,
+			"startDate": "1970-01-01"
+		}`),
+	)
+	rr := httptest.NewRecorder()
+
+	ctx := context.WithValue(req.Context(), userIDKey, mockUserID.String())
+
+	handler.HandleSaveLoan(rr, req.WithContext(ctx))
+
+	require.Equal(t, http.StatusCreated, rr.Code)
 }
 
 func TestSaveLoanBadRequest(t *testing.T) {
@@ -108,7 +136,7 @@ func TestListLoans(t *testing.T) {
 	require.Equal(t, http.StatusOK, rr.Code)
 }
 
-func TestListLoansNoUserID(t *testing.T) {
+func TestListLoansUnauthorized(t *testing.T) {
 	mockLoansRepo := &service.MockLoansRepo{}
 	service := service.NewLoansService(mockLoansRepo)
 	handler := NewLoanHandler(service)

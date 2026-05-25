@@ -31,7 +31,7 @@ func (handler *LoanHandler) HandleCalculateLoan(writer http.ResponseWriter, requ
 	}
 
 	result, err := handler.loanService.CalculateLoanPaymentPlan(mapper.ToLoanInput(reqParams))
-	var inputErr service.InputError
+	var inputErr service.LoanInputError
 	if err != nil {
 		switch {
 		case errors.As(err, &inputErr):
@@ -65,7 +65,7 @@ func (handler *LoanHandler) HandleSaveLoan(writer http.ResponseWriter, request *
 
 	result, err := handler.loanService.SaveLoanPaymentPlan(context.Background(), mapper.ToSaveLoanInput(userUUID, reqParams))
 	if err != nil {
-		var inputErr service.InputError
+		var inputErr service.LoanInputError
 		switch {
 		case errors.As(err, &inputErr):
 			respondWithError(writer, err.Error(), err.Error(), http.StatusBadRequest)

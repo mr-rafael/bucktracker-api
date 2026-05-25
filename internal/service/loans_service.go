@@ -11,11 +11,11 @@ import (
 	"github.com/shopspring/decimal"
 )
 
-type InputError struct {
+type LoanInputError struct {
 	Message string
 }
 
-func (e InputError) Error() string {
+func (e LoanInputError) Error() string {
 	return e.Message
 }
 
@@ -151,35 +151,35 @@ func initializePaymentPlan(input domain.LoansInput, userID uuid.UUID, name strin
 
 	startingPrincipal := decimal.NewFromInt(int64(input.StartingPrincipal))
 	if !decimalIsBetween(startingPrincipal, minLoanCents, maxLoanCents) {
-		return domain.LoanPaymentPlan{}, InputError{Message: fmt.Sprintf("invalid starting principal: '%v'. the accepted range is 0.01 - 1,000,000,000", startingPrincipal.Div(oneHundred).Round(2))}
+		return domain.LoanPaymentPlan{}, LoanInputError{Message: fmt.Sprintf("invalid starting principal: '%v'. the accepted range is 0.01 - 1,000,000,000", startingPrincipal.Div(oneHundred).Round(2))}
 	}
 	plan.StartingPrincipal = startingPrincipal
 	plan.CurrentPrincipal = startingPrincipal
 
 	monthlyInterestRate, err := getMonthlyAPRMultiplier(input.YearlyInterestRate)
 	if !stringNumberBetween(input.YearlyInterestRate, minInterestRate, maxInterestRate) {
-		return domain.LoanPaymentPlan{}, InputError{Message: fmt.Sprintf("invalid interest rate: '%v'. the accepted range is 0%% - 100%%", input.YearlyInterestRate)}
+		return domain.LoanPaymentPlan{}, LoanInputError{Message: fmt.Sprintf("invalid interest rate: '%v'. the accepted range is 0%% - 100%%", input.YearlyInterestRate)}
 	}
 	if err != nil {
-		return domain.LoanPaymentPlan{}, InputError{Message: fmt.Sprintf("invalid interest rate: '%v'", input.YearlyInterestRate)}
+		return domain.LoanPaymentPlan{}, LoanInputError{Message: fmt.Sprintf("invalid interest rate: '%v'", input.YearlyInterestRate)}
 	}
 	plan.InterestMultiplierM = monthlyInterestRate
 
 	monthlyPayment := decimal.NewFromInt(int64(input.MonthlyPayment))
 	if !decimalIsBetween(monthlyPayment, minMonthlyPaymentCents, maxMonthlyPaymentCents) {
-		return domain.LoanPaymentPlan{}, InputError{Message: fmt.Sprintf("invalid monthly payments: '%v'. the accepted range is 0.01 - 1,000,000,000", monthlyPayment.Div(oneHundred).Round(2))}
+		return domain.LoanPaymentPlan{}, LoanInputError{Message: fmt.Sprintf("invalid monthly payments: '%v'. the accepted range is 0.01 - 1,000,000,000", monthlyPayment.Div(oneHundred).Round(2))}
 	}
 	plan.PaymentM = monthlyPayment
 
 	escrow := decimal.NewFromInt(int64(input.EscrowPayment))
 	if !decimalIsBetween(escrow, minEscrowCents, maxEscrowCents) {
-		return domain.LoanPaymentPlan{}, InputError{Message: fmt.Sprintf("invalid escrow payment: '%v'. the accepted range is 0.01 - 1,000,000,000", escrow.Div(oneHundred).Round(2))}
+		return domain.LoanPaymentPlan{}, LoanInputError{Message: fmt.Sprintf("invalid escrow payment: '%v'. the accepted range is 0.01 - 1,000,000,000", escrow.Div(oneHundred).Round(2))}
 	}
 	plan.EscrowM = escrow
 
 	startDate, err := time.Parse("2006-01-02", input.StartDate)
 	if err != nil {
-		return domain.LoanPaymentPlan{}, InputError{Message: fmt.Sprintf("invalid start date: %v", input.StartDate)}
+		return domain.LoanPaymentPlan{}, LoanInputError{Message: fmt.Sprintf("invalid start date: %v", input.StartDate)}
 	}
 	plan.Date = startDate
 
