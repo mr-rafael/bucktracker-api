@@ -2,11 +2,14 @@ package api
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 
+	"github.com/Mr-Rafael/finance-calculator/internal/db"
+	"github.com/Mr-Rafael/finance-calculator/internal/domain"
 	"github.com/Mr-Rafael/finance-calculator/internal/service"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
@@ -124,6 +127,7 @@ func TestListLoansNoUserID(t *testing.T) {
 
 func TestGetLoan(t *testing.T) {
 	mockUserID, _ := uuid.NewRandom()
+	mockLoanID, _ := uuid.NewRandom()
 
 	mockLoansRepo := &service.MockLoansRepo{}
 	service := service.NewLoansService(mockLoansRepo)
@@ -131,14 +135,141 @@ func TestGetLoan(t *testing.T) {
 
 	req := httptest.NewRequest(
 		http.MethodGet,
-		"/app/loans/calculate",
+		fmt.Sprintf("/app/loans/get/%v", mockLoanID.String()),
 		nil,
 	)
+	req.SetPathValue("id", mockLoanID.String())
 	rr := httptest.NewRecorder()
 
 	ctx := context.WithValue(req.Context(), userIDKey, mockUserID.String())
 
-	handler.HandleListLoans(rr, req.WithContext(ctx))
+	handler.HandleGetLoan(rr, req.WithContext(ctx))
 
 	require.Equal(t, http.StatusOK, rr.Code)
+}
+
+func TestGetLoanUnauthorized(t *testing.T) {
+	mockLoansRepo := &service.MockLoansRepo{}
+	mockLoanID, _ := uuid.NewRandom()
+	service := service.NewLoansService(mockLoansRepo)
+	handler := NewLoanHandler(service)
+
+	req := httptest.NewRequest(
+		http.MethodGet,
+		fmt.Sprintf("/app/loans/get/%v", mockLoanID.String()),
+		nil,
+	)
+	rr := httptest.NewRecorder()
+
+	handler.HandleGetLoan(rr, req)
+
+	require.Equal(t, http.StatusUnauthorized, rr.Code)
+}
+
+func TestUpdateLoan(t *testing.T) {
+	mockUserID, _ := uuid.NewRandom()
+	mockLoanID, _ := uuid.NewRandom()
+
+	mockLoansRepo := &service.MockLoansRepo{
+		GetLoanInitialDataFunc: func(ctx context.Context, planID uuid.UUID, userID uuid.UUID) (domain.UpdateLoanData, error) {
+			return domain.UpdateLoanData{
+				ID:   planID,
+				Name: "originalName",
+				LoanData: domain.LoansInput{
+					StartingPrincipal:  10000,
+					YearlyInterestRate: "5",
+					MonthlyPayment:     1000,
+					EscrowPayment:      100,
+					StartDate:          "1970-01-01",
+				},
+			}, nil
+		},
+		UpdateLoanFunc: func(ctx context.Context, plan domain.LoanPaymentPlan) (db.Loan, error) {
+			return db.Loan{
+				Name:               plan.Name,
+				StartingPrincipal:  int32(plan.OriginalData.StartingPrincipal),
+				YearlyInterestRate: plan.OriginalData.YearlyInterestRate,
+			}, nil
+		},
+	}
+	service := service.NewLoansService(mockLoansRepo)
+	handler := NewLoanHandler(service)
+
+	req := httptest.NewRequest(
+		http.MethodPatch,
+		"/app/loans",
+		strings.NewReader(`{
+			"interestRate": "5"
+		}`),
+	)
+	req.SetPathValue("id", mockLoanID.String())
+	rr := httptest.NewRecorder()
+
+	ctx := context.WithValue(req.Context(), userIDKey, mockUserID.String())
+
+	handler.HandleUpdateLoan(rr, req.WithContext(ctx))
+
+	require.Equal(t, http.StatusOK, rr.Code)
+}
+
+func TestUpdateLoanUnauthorized(t *testing.T) {
+	mockLoanID, _ := uuid.NewRandom()
+
+	mockLoansRepo := &service.MockLoansRepo{}
+	service := service.NewLoansService(mockLoansRepo)
+	handler := NewLoanHandler(service)
+
+	req := httptest.NewRequest(
+		http.MethodPatch,
+		fmt.Sprintf("/app/loans/update/%v", mockLoanID.String()),
+		nil,
+	)
+	rr := httptest.NewRecorder()
+
+	handler.HandleUpdateLoan(rr, req)
+
+	require.Equal(t, http.StatusUnauthorized, rr.Code)
+}
+
+func TestDeleteLoan(t *testing.T) {
+	mockUserID, _ := uuid.NewRandom()
+	mockLoanID, _ := uuid.NewRandom()
+
+	mockLoansRepo := &service.MockLoansRepo{}
+	service := service.NewLoansService(mockLoansRepo)
+	handler := NewLoanHandler(service)
+
+	req := httptest.NewRequest(
+		http.MethodDelete,
+		fmt.Sprintf("/app/loans/%v", mockLoanID.String()),
+		nil,
+	)
+	req.SetPathValue("id", mockLoanID.String())
+	rr := httptest.NewRecorder()
+
+	ctx := context.WithValue(req.Context(), userIDKey, mockUserID.String())
+
+	handler.HandleDeleteLoan(rr, req.WithContext(ctx))
+
+	require.Equal(t, http.StatusNoContent, rr.Code)
+}
+
+func TestDeleteLoanUnauthorized(t *testing.T) {
+	mockLoanID, _ := uuid.NewRandom()
+
+	mockLoansRepo := &service.MockLoansRepo{}
+	service := service.NewLoansService(mockLoansRepo)
+	handler := NewLoanHandler(service)
+
+	req := httptest.NewRequest(
+		http.MethodDelete,
+		fmt.Sprintf("/app/loans/%v", mockLoanID.String()),
+		nil,
+	)
+	req.SetPathValue("id", mockLoanID.String())
+	rr := httptest.NewRecorder()
+
+	handler.HandleDeleteLoan(rr, req)
+
+	require.Equal(t, http.StatusUnauthorized, rr.Code)
 }

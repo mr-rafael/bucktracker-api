@@ -66,13 +66,11 @@ func (handler *LoanHandler) HandleSaveLoan(writer http.ResponseWriter, request *
 	result, err := handler.loanService.SaveLoanPaymentPlan(context.Background(), mapper.ToSaveLoanInput(userUUID, reqParams))
 	if err != nil {
 		var inputErr service.InputError
-		if err != nil {
-			switch {
-			case errors.As(err, &inputErr):
-				respondWithError(writer, err.Error(), err.Error(), http.StatusBadRequest)
-			default:
-				respondWithError(writer, err.Error(), err.Error(), http.StatusInternalServerError)
-			}
+		switch {
+		case errors.As(err, &inputErr):
+			respondWithError(writer, err.Error(), err.Error(), http.StatusBadRequest)
+		default:
+			respondWithError(writer, err.Error(), err.Error(), http.StatusInternalServerError)
 		}
 	}
 
@@ -103,6 +101,8 @@ func (handler *LoanHandler) HandleGetLoan(writer http.ResponseWriter, request *h
 		return
 	}
 	planID := request.PathValue("id")
+
+	fmt.Printf("\n\n\nReceived the following Plan ID: %v\n\n\n", planID)
 
 	userUUID, err := uuid.Parse(userID)
 	if err != nil {
@@ -145,7 +145,7 @@ func (handler *LoanHandler) HandleUpdateLoan(writer http.ResponseWriter, request
 	reqParams := dto.LoanUpdateRequestParams{}
 	err = decoder.Decode(&reqParams)
 	if err != nil {
-		respondWithErrorCode(writer, "received bad update loan request", http.StatusBadRequest)
+		respondWithErrorCode(writer, fmt.Sprintf("received bad update loan request: %v", err), http.StatusBadRequest)
 		return
 	}
 
@@ -155,7 +155,7 @@ func (handler *LoanHandler) HandleUpdateLoan(writer http.ResponseWriter, request
 		return
 	}
 
-	respondWithJSON(writer, mapper.ToSaveLoanResponse(result), http.StatusCreated)
+	respondWithJSON(writer, mapper.ToSaveLoanResponse(result), http.StatusOK)
 }
 
 func (handler *LoanHandler) HandleDeleteLoan(writer http.ResponseWriter, request *http.Request) {

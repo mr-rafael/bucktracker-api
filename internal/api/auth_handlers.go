@@ -54,7 +54,6 @@ func (handler *AuthHandler) Refresh(writer http.ResponseWriter, request *http.Re
 		return
 	}
 
-	fmt.Printf("Attempting to refresh token with token: %v\n", cookie.Value)
 	result, err := handler.authService.Refresh(context.Background(), (mapper.ToRefreshInput(cookie.Value)))
 	if err != nil {
 		respondWithErrorCode(writer, fmt.Sprintf("Error refreshing token: %v", err), http.StatusUnauthorized)
