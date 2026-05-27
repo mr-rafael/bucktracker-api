@@ -14,28 +14,23 @@ import (
 func TestCreateRefreshToken(t *testing.T) {
 	ctx := context.Background()
 	queries := initializeQueries(ctx)
-	repo := NewAuthRepo(queries)
+	authRepo := NewAuthRepo(queries)
 
-	test_user_id, err := uuid.Parse("af38df43-3ced-4869-9930-93a0fa0cf1e0")
-	if err != nil {
-		log.Fatalf("failed to parse the test user uuid: %v", err)
-	}
+	userData, err := CreateTestUserIfNotExists()
 
-	user := pgtype.UUID{
-		Bytes: test_user_id,
-		Valid: true,
-	}
-	got, err := repo.CreateRefreshToken(ctx, user, "test_token", time.Now())
+	got, err := authRepo.CreateRefreshToken(ctx, userData.ID, "test_token", time.Now())
 	if err != nil {
 		log.Fatalf("Error saving the refresh token in database: %v", err)
 	}
 	want := db.RefreshToken{
-		UserID: user,
+		UserID: userData.ID,
 	}
 
 	if got.UserID.Bytes != want.UserID.Bytes {
 		log.Fatalf("Saved (%v) and expected (%v) user IDs did not match.", got.UserID.Bytes, want.UserID.Bytes)
 	}
+
+	DeleteTestUser()
 }
 
 func TestGetTokenByHash(t *testing.T) {

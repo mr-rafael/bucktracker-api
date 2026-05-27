@@ -94,3 +94,34 @@ func TestGetUserByID(t *testing.T) {
 		log.Fatalf("The expected email (%v) did not match the fetched one (%v)", want.ID.Bytes, got.ID.Bytes)
 	}
 }
+
+func CreateTestUserIfNotExists() (db.User, error) {
+	ctx := context.Background()
+	queries := initializeQueries(ctx)
+	testEmail := "unit@test.com"
+
+	insertParams := db.CreateUserParams{
+		Email:        testEmail,
+		PasswordHash: "password",
+		Username:     "Unit",
+	}
+
+	user, err := queries.GetUserByEmail(ctx, testEmail)
+	if err != nil {
+		return queries.CreateUser(ctx, insertParams)
+
+	}
+	return user, nil
+}
+
+func DeleteTestUser() {
+	ctx := context.Background()
+	queries := initializeQueries(ctx)
+	testEmail := "unit@test.com"
+
+	user, err := queries.GetUserByEmail(ctx, testEmail)
+	if err == nil {
+		queries.DeleteUser(ctx, user.ID)
+		return
+	}
+}

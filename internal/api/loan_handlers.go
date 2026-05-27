@@ -102,8 +102,6 @@ func (handler *LoanHandler) HandleGetLoan(writer http.ResponseWriter, request *h
 	}
 	planID := request.PathValue("id")
 
-	fmt.Printf("\n\n\nReceived the following Plan ID: %v\n\n\n", planID)
-
 	userUUID, err := uuid.Parse(userID)
 	if err != nil {
 		respondWithErrorCode(writer, "failed to get user ID from context", http.StatusUnauthorized)
