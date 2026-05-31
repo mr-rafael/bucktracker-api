@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -29,8 +30,15 @@ func (handler *UsersHandler) CreateUser(writer http.ResponseWriter, request *htt
 	}
 	result, err := handler.userService.RegisterUser(context.Background(), mapper.ToCreateUserInput(reqParams))
 	if err != nil {
-		respondWithError(writer, fmt.Sprintf("error creating the user: %v", err), fmt.Sprintf("error creating the user: %v", err), http.StatusInternalServerError)
-		return
+		var inputErr service.UsersInputError
+		switch {
+		case errors.As(err, &inputErr):
+			respondWithError(writer, err.Error(), err.Error(), http.StatusBadRequest)
+			return
+		default:
+			respondWithError(writer, err.Error(), err.Error(), http.StatusInternalServerError)
+			return
+		}
 	}
 	respondWithJSON(writer, result, http.StatusCreated)
 }

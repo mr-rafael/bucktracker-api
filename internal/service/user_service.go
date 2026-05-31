@@ -9,6 +9,14 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+type UsersInputError struct {
+	Message string
+}
+
+func (e UsersInputError) Error() string {
+	return e.Message
+}
+
 type UserService struct {
 	repo UsersRepository
 }
@@ -62,6 +70,10 @@ func ToUserModel(dbUser db.User) User {
 }
 
 func ToUserCreateParams(input RegisterUserInput) (db.CreateUserParams, error) {
+	err := CheckForEmptyFields(input)
+	if err != nil {
+		return db.CreateUserParams{}, err
+	}
 	passwordHash, err := bcrypt.GenerateFromPassword([]byte(input.Password), bcrypt.DefaultCost)
 	if err != nil {
 		return db.CreateUserParams{}, fmt.Errorf("failed to generate password hash: %v", err)
@@ -74,4 +86,17 @@ func ToUserCreateParams(input RegisterUserInput) (db.CreateUserParams, error) {
 	}
 
 	return params, nil
+}
+
+func CheckForEmptyFields(input RegisterUserInput) error {
+	if len(input.Email) <= 0 {
+		return UsersInputError{Message: fmt.Sprintf("email field is required. got '%v'", input.Email)}
+	}
+	if len(input.Password) <= 0 {
+		return UsersInputError{Message: fmt.Sprintf("password field is required. got '%v'", input.Password)}
+	}
+	if len(input.Username) <= 0 {
+		return UsersInputError{Message: fmt.Sprintf("username field is required. got '%v'", input.Username)}
+	}
+	return nil
 }

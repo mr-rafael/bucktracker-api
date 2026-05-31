@@ -264,8 +264,93 @@ OK
 ```
 ---
 
-## Collaborators</h2>
+## `POST /app/users/create`
 
+Create a new user.
+
+---
+
+### URL
+
+```http
+POST /app/users/create
+```
+
+### Headers
+
+| Header | Required | Description |
+|---|---|---|
+| Content-Type | Yes | `application/json` |
+
+### Request Body
+
+```json
+{
+	"email":"user@mail.com",
+    "password":"password",
+    "username":"User Name"
+}
+```
+
+### Request Fields
+
+
+| Parameter | Type | Required | Description |
+|---|---|---|---|
+| email | string | Yes | Email of the user to create. Must be unique to the user. |
+| password | string | Yes | Password for the user. |
+| username | string | Yes | Display name for the user. |
+
+---
+
+### Response
+
+### Success Response
+
+**Status Code:** `201 Created`
+
+```json
+{
+    "ID": "fa3ad421-c507-4d3c-bd77-e7918a67aaae",
+    "Email": "user@mail.com",
+    "Username": "User Name",
+    "CreatedAt": "1970-01-01T21:39:22.159435"
+}
+```
+
+### Response Fields
+
+| Field | Type | Description |
+|---|---|---|
+| ID | string | UUID of the created user. |
+| Email | string | User's email. |
+| Username | string | User's Display Name. |
+| CreatedAt | string | ISO 8601 timestamp |
+
+---
+
+### Error Responses
+
+### `400 Bad Request`
+
+```json
+{
+  "error": "invalid request body"
+}
+```
+### `500 Internal Server Error`
+
+```json
+{
+  "error": "internal server error"
+}
+```
+
+<br>
+
+---
+
+## Collaborators</h2>
 <table>
   <tr>
     <td align="center">
