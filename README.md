@@ -8,9 +8,9 @@
 - Go
 - PostgreSQL
 
-## Getting Started
+# Getting Started
 
-### Prerequisites
+## Prerequisites
 
 Before running the project, make sure you have the following installed:
 
@@ -20,7 +20,7 @@ Before running the project, make sure you have the following installed:
 
 ---
 
-### Installation
+## Installation
 
 Clone the repository:
 
@@ -31,13 +31,64 @@ cd finance-calculator
 
 ---
 
-### Configure the Database
+## Setting up the Database
 
-Create a PostgreSQL database:
+Make sure PostgreSQL is running.
+
+### 1. Database and User Creation
+
+Login to the database with the default user:
+
+```
+sudo -i -u postgres psql
+```
+
+Create a PostgreSQL database. Example database name: `finance_calculator_db`
 
 ```sql
-CREATE DATABASE your_database_name;
+CREATE DATABASE <database name>;
 ```
+
+Create a user and grant database privileges. Example username: `app_user`
+
+```sql
+CREATE USER <username> WITH PASSWORD '<password>';
+
+GRANT ALL PRIVILEGES ON DATABASE <database name> TO <username>;
+```
+
+Connect to the database and grant permissions to the user:
+
+```sql
+\c <database name>  
+
+GRANT ALL ON SCHEMA public TO <username>;
+```
+Then, exit with `\q + ENTER`.
+
+### 2. Creating and testing the Database Connection String
+
+This connection string will be needed for the `.env` and for database migrations, so save it somewhere secure.
+
+The connection string has the format (server address is `localhost` if running locally):
+
+```
+ postgres://<username>:<password>@<server address>:5432/<database name>?sslmode=disable   
+ ```
+
+Change directory to `<project directory>/internal/db/migrations`. From there, run:
+
+```
+goose postgres postgres://app_user:password@localhost:5432/finance_calculator?sslmode=disable status
+```
+
+If the test works, run the database migrations:
+
+```
+goose postgres postgres://app_user:password@localhost:5432/finance_calculator?sslmode=disable up
+```
+
+## Configuring the Environment Variables
 
 Set the database connection environment variables as needed by the project.
 
@@ -45,41 +96,21 @@ Example:
 
 ```bash
 ALLOWED_ORIGIN=http://localhost:5173
-POSTGRES_CONNECTION_STRING=postgres://<username>:<password>@localhost:5432/finance_calculator?sslmode=disable
-ACCESS_SECRET=DEVENVIRONMENTSECRET
-REFRESH_SECRET=DEVENVREFRESHSECRET
+POSTGRES_CONNECTION_STRING=<Database Connection String>
+ACCESS_SECRET=<Access Secret>
+REFRESH_SECRET=<Refresh Secret>
 ENV=develop
 ```
 
-- **ALLOWED_ORIGIN**: Used for CORS. Necessary when you're running both the server and a client on the same computer.
+- **ALLOWED_ORIGIN**: Used for CORS. Necessary when you're running both the server and a web client on the same computer. Configure the specific port of your frontend application.
 - **POSTGRES_CONNECTION_STRING**: The user, password and address of the PostgreSQL database you're running.
-- **ACCESS_SECRET**: The secret that will be used to sign Access Tokens.
-- **REFRESH_SECRET**: The secret that will be used to sign Refresh Tokens.
-- **ENV**: If set to "production", the Refresh Token cookie will be set to Secure, and only be sent via HTTPS.
+- **ACCESS_SECRET**: The secret that will be used to sign Access Tokens. Can be any string.
+- **REFRESH_SECRET**: The secret that will be used to sign Refresh Tokens. Can be any string.
+- **ENV**: If set to "production", the Refresh Token cookie will be set to Secure, and only be sent via HTTPS. If not in production, leave as "develop".
 
 ---
 
-### Installing Goose
-
-If Goose is not installed:
-
-```bash
-go install github.com/pressly/goose/v3/cmd/goose@latest
-```
-
----
-
-### Run Database Migrations
-
-Apply the migrations using Goose:
-
-```bash
-goose postgres "host=localhost port=5432 user=postgres password=postgres dbname=your_database_name sslmode=disable" up
-```
-
----
-
-### Install Dependencies
+## Install Dependencies
 
 ```bash
 go mod tidy
@@ -87,7 +118,7 @@ go mod tidy
 
 ---
 
-### Run the Project
+## Run the Project
 
 ```bash
 go run ./cmd/server/main.go
@@ -100,7 +131,7 @@ go run ./cmd/server/main.go
 - Make sure PostgreSQL is running before starting the application.
 - Ensure the database credentials match your local setup.
 
-## API Endpoints
+# API Endpoints
 
 | route               | description                                          
 |----------------------|-----------------------------------------------------
@@ -1669,7 +1700,7 @@ No body.
 }
 ```
 
-## Collaborators</h2>
+# Collaborators</h2>
 <table>
   <tr>
     <td align="center">
