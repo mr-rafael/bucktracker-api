@@ -2,6 +2,10 @@
 
 **A REST API with useful Savings and Loans calculations.**
 
+Currently, it can help you:
+
+1. Calculate your future savings on a savings account, depending on how much you wish to deposit every month, what interest rate it has, the term, and other parameters.
+2. Calculate how long it will take you to pay a loan, what your cost of credit will be, depending on the interest rate, your monthly payments, and other parameters. 
 
 ## Technologies Used
 
