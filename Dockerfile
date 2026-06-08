@@ -10,9 +10,8 @@ FROM alpine:3.20
 RUN apk add --no-cache ca-certificates tzdata
 COPY --from=builder /app/server /app/server
 COPY --from=builder /go/bin/goose /usr/local/bin/goose
-RUN echo "POSTGRES_CONNECTION_STRING=" > /app/.env && \
-    echo "ACCESS_SECRET=" >> /app/.env && \
-    echo "REFRESH_SECRET=" >> /app/.env && \
-    echo "ENV=production" >> /app/.env
+COPY .env.example /app/.env.example
+COPY entrypoint.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
 EXPOSE 8080
-ENTRYPOINT ["/app/server"]
+ENTRYPOINT ["/app/entrypoint.sh"]

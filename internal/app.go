@@ -26,8 +26,7 @@ func New() *App {
 	// environment variables
 	err := godotenv.Load()
 	if err != nil {
-		fmt.Printf("Error reading .env: %v", err)
-		return &App{}
+		fmt.Printf("Warning: Error reading .env: %v\n", err)
 	}
 	accessSecret := os.Getenv("ACCESS_SECRET")
 	refreshSecret := os.Getenv("REFRESH_SECRET")
