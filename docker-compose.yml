@@ -18,7 +18,7 @@ services:
     entrypoint: ["goose"]
     command:
       [
-        "-dir", "/internal/db/migrations",
+        "-dir", "/migrations",
         "postgres",
         "postgres://app_user:password@db:5432/finance_calculator?sslmode=disable",
         "up"

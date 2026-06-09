@@ -23,17 +23,11 @@ I used to make these calculations on spreadsheets, but they become harder to man
 - Go
 - PostgreSQL
 
-# Getting Started
+# Quick Start_
 
 ## Prerequisites
 
-Before running the project, make sure you have the following installed:
-
-- [Go](https://go.dev/doc/install) 
-- [PostgreSQL](https://www.postgresql.org/download/)
-- [Goose](https://pkg.go.dev/github.com/pressly/goose/v3#section-readme) (Database migration tool)
-
----
+To run the project, make sure you have [Docker](https://www.docker.com/products/docker-desktop/) installed and running.
 
 ## Installation
 
@@ -44,107 +38,94 @@ git clone git@github.com:Mr-Rafael/finance-calculator.git
 cd finance-calculator
 ```
 
----
+## Running the Project
 
-## Setting up the Database
-
-Make sure PostgreSQL is running.
-
-### 1. Database and User Creation
-
-Login to the database with the default user:
+After cloning the project, enter the project directory and run:
 
 ```
-sudo -i -u postgres psql
+docker compose up --build -d
 ```
 
-Create a PostgreSQL database. Example database name: `finance_calculator_db`
+### What the docker compose command does (if interested)
 
-```sql
-CREATE DATABASE <database name>;
+The previous command will automatically:
+
+- Start a container running PostgreSQL.
+- Create the volume `finance-calculator_postgres_data` and attach it to the container.
+- Run the database migrations located in `/internal/db/migrations` using Goose Migrations.
+- Start a container running the Finance Calculator REST API server.
+
+## Usage example
+
+### Calculate a Savings Plan
+
+You can calculate a Savings Plan by using the endpoint:
+
+`http://localhost:8080/app/savings/calculate`
+
+With a JSON body in this format:
+
+```json
+{
+	"startingCapital": 10000000,
+	"yearlyInterestRate": "4.75",
+	"monthlyContribution": 10000,
+	"durationYears": 1,
+	"startDate": "1970-01-01"
+}
 ```
 
-Create a user and grant database privileges. Example username: `app_user`
+You should receive a response in this format:
 
-```sql
-CREATE USER <username> WITH PASSWORD '<password>';
-
-GRANT ALL PRIVILEGES ON DATABASE <database name> TO <username>;
+```json
+{
+    "monthlyInterestRate": "0.4074123784",
+    "totalEarnings": 502726,
+    "totalDeposited": 10120000,
+    "rateOfReturn": "4.97",
+    "inflationAdjustedROR": "4.97",
+    "plan": [array of monthly statuses here]
+}
 ```
 
-Connect to the database and grant permissions to the user:
+### Calculate a Loan Payment Plan
 
-```sql
-\c <database name>  
+You can calculate a Savings Plan by using the endpoint:
 
-GRANT ALL ON SCHEMA public TO <username>;
-```
-Then, exit with `\q + ENTER`.
+`http://localhost:8080/app/loans/calculate`
 
-### 2. Creating and testing the Database Connection String
+With a JSON body in this format:
 
-This connection string will be needed for the `.env` and for database migrations, so save it somewhere secure.
-
-The connection string has the format (server address is `localhost` if running locally):
-
-```
- postgres://<username>:<password>@<server address>:5432/<database name>?sslmode=disable   
- ```
-
-Change directory to `<project directory>/internal/db/migrations`. From there, run:
-
-```
-goose postgres postgres://app_user:password@localhost:5432/finance_calculator?sslmode=disable status
+```json
+{
+	"startingPrincipal": 10000000,
+	"yearlyInterestRate": "5",
+	"monthlyPayment": 750000,
+	"escrowPayment": 10000,
+	"startDate": "1970-01-01"
+}
 ```
 
-If the test works, run the database migrations:
+You should receive a response in this format:
 
-```
-goose postgres postgres://app_user:password@localhost:5432/finance_calculator?sslmode=disable up
-```
-
-## Configuring the Environment Variables
-
-Set the database connection environment variables as needed by the project.
-
-Example:
-
-```bash
-ALLOWED_ORIGIN=http://localhost:5173
-POSTGRES_CONNECTION_STRING=<Database Connection String>
-ACCESS_SECRET=<Access Secret>
-REFRESH_SECRET=<Refresh Secret>
-ENV=develop
+```json
+{
+    "durationMonths": 14,
+    "totalExpenditure": 454085,
+    "totalPaid": 10454085,
+    "costOfCreditPercent": "4.54",
+    "plan": [array of monthly statuses here]
+}
 ```
 
-- **ALLOWED_ORIGIN**: Used for CORS. Necessary when you're running both the server and a web client on the same computer. Configure the specific port of your frontend application.
-- **POSTGRES_CONNECTION_STRING**: The user, password and address of the PostgreSQL database you're running.
-- **ACCESS_SECRET**: The secret that will be used to sign Access Tokens. Can be any string.
-- **REFRESH_SECRET**: The secret that will be used to sign Refresh Tokens. Can be any string.
-- **ENV**: If set to "production", the Refresh Token cookie will be set to Secure, and only be sent via HTTPS. If not in production, leave as "develop".
+### What else can you do?
 
----
+You can currently:
+- Create a user.
+- Save your Loan Payment Plans and Savings Plans for future reference.
+- Get, Update or Delete the Plans you previously saved.
 
-## Install Dependencies
-
-```bash
-go mod tidy
-```
-
----
-
-## Run the Project
-
-```bash
-go run ./cmd/server/main.go
-```
-
----
-
-### Notes
-
-- Make sure PostgreSQL is running before starting the application.
-- Ensure the database credentials match your local setup.
+Check the API Endpoints section for advanced usage information.
 
 # API Endpoints
 
