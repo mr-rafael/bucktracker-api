@@ -23,7 +23,7 @@ I used to make these calculations on spreadsheets, but they become harder to man
 - Go
 - PostgreSQL
 
-# Quick Start_
+# Quick Start
 
 ## Prerequisites
 
@@ -1574,6 +1574,31 @@ No body.
   "error": "internal server error"
 }
 ```
+
+## Contributing
+
+### Clone the repo
+
+```bash
+git clone https://github.com/Mr-Rafael/finance-calculator.git
+cd finance-calculator
+```
+
+### Run the unit test suite
+
+```bash
+go test ./internal/...
+```
+
+### Build the compiled binary
+
+```bash
+go build
+```
+
+### Submit a pull request
+
+If you'd like to contribute, please fork the repository and open a pull request to the `main` branch.
 
 # Collaborators</h2>
 <table>
