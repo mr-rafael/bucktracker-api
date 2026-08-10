@@ -76,7 +76,7 @@ func (handler *LoanHandler) HandleSaveLoan(writer http.ResponseWriter, request *
 		return
 	}
 
-	respondWithJSON(writer, mapper.ToSaveLoanResponse(result), http.StatusCreated)
+	respondWithJSON(writer, mapper.ToCreateLoanResponse(result), http.StatusCreated)
 }
 
 func (handler *LoanHandler) HandleListLoans(writer http.ResponseWriter, request *http.Request) {
@@ -139,6 +139,7 @@ func (handler *LoanHandler) HandleUpdateLoan(writer http.ResponseWriter, request
 	planUUID, err := uuid.Parse(planID)
 	if err != nil {
 		respondWithErrorCode(writer, "invalid plan ID", http.StatusNotFound)
+		return
 	}
 
 	decoder := json.NewDecoder(request.Body)
@@ -149,13 +150,19 @@ func (handler *LoanHandler) HandleUpdateLoan(writer http.ResponseWriter, request
 		return
 	}
 
-	result, err := handler.loanService.UpdateLoan(context.Background(), mapper.ToUpdateLoanInput(planUUID, userUUID, reqParams))
+	_, err = handler.loanService.UpdateLoan(context.Background(), mapper.ToUpdateLoanInput(planUUID, userUUID, reqParams))
 	if err != nil {
 		respondWithError(writer, fmt.Sprintf("Error saving the plan: %v", err), fmt.Sprintf("Error saving the plan: %v", err), http.StatusInternalServerError)
 		return
 	}
 
-	respondWithJSON(writer, mapper.ToSaveLoanResponse(result), http.StatusOK)
+	result, err := handler.loanService.GetLoan(context.Background(), planUUID, userUUID)
+	if err != nil {
+		respondWithErrorCode(writer, fmt.Sprintf("attempt to fetch loan %v by user %v", planUUID, userUUID), http.StatusUnauthorized)
+		return
+	}
+
+	respondWithJSON(writer, mapper.ToGetLoanResponse(result), http.StatusOK)
 }
 
 func (handler *LoanHandler) HandleDeleteLoan(writer http.ResponseWriter, request *http.Request) {

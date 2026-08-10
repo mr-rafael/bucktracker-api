@@ -19,11 +19,11 @@ type LoanResponseParams struct {
 }
 
 type SavedLoanResponseParams struct {
-	ID             string             `json:"id"`
-	Name           string             `json:"name"`
-	OriginalData   OriginalLoanData   `json:"originalData"`
-	CalculatedData CalculatedLoanData `json:"calculatedData"`
-	PaymentPlan    []LoanStatus       `json:"paymentPlan"`
+	ID                 string               `json:"id"`
+	Name               string               `json:"name"`
+	OriginalData       OriginalLoanData     `json:"originalData"`
+	DefaultPaymentPlan PaymentPlanSummary   `json:"defaultPaymentPlan"`
+	PaymentPlans       []PaymentPlanSummary `json:"paymentPlans"`
 }
 
 type OriginalLoanData struct {
@@ -32,14 +32,6 @@ type OriginalLoanData struct {
 	MonthlyPayment     int    `json:"monthlyPayment"`
 	EscrowPayment      int    `json:"escrowPayment"`
 	StartDate          string `json:"startDate"`
-}
-
-type CalculatedLoanData struct {
-	MonthlyInterestRate string `json:"monthlyInterestRate"`
-	DurationMonths      int    `json:"durationMonths"`
-	TotalExpenditure    int    `json:"totalExpenditure"`
-	TotalPaid           int    `json:"totalPaid"`
-	CostOfCredit        string `json:"costOfCredit"`
 }
 
 type LoanStatus struct {
@@ -60,6 +52,22 @@ type LoanSaveRequestParams struct {
 	StartDate          string `json:"startDate"`
 }
 
+type PaymentPlanSummary struct {
+	ID             string `json:"id"`
+	Name           string `json:"name"`
+	DurationMonths int    `json:"durationMonths"`
+}
+
+type LoanCreateResponseParams struct {
+	ID                 string               `json:"id"`
+	Name               string               `json:"name"`
+	StartingPrincipal  int                  `json:"startingPrincipal"`
+	YearlyInterestRate string               `json:"yearlyInterestRate"`
+	DefaultPaymentPlan PaymentPlanSummary   `json:"defaultPaymentPlan"`
+	PaymentPlans       []PaymentPlanSummary `json:"paymentPlans"`
+}
+
+// LoanSaveResponseParams is used by update responses.
 type LoanSaveResponseParams struct {
 	ID                  string `json:"id"`
 	Name                string `json:"name"`

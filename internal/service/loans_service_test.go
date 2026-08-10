@@ -10,6 +10,7 @@ import (
 	"github.com/Mr-Rafael/bucktracker-api/internal/db"
 	"github.com/Mr-Rafael/bucktracker-api/internal/domain"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 func TestCalculateLoanPaymentPlan(t *testing.T) {
@@ -29,12 +30,14 @@ func TestCalculateLoanPaymentPlan(t *testing.T) {
 		log.Fatalf("Error calculating the loan payment plan: %v", err)
 	}
 
-	want := domain.LoanPaymentPlan{
-		DurationMonths: 12,
-	}
+	wantDuration := 12
 
-	if got.DurationMonths != want.DurationMonths {
-		log.Fatalf("Expected a duration of %v months, but got %v.", want.DurationMonths, got.DurationMonths)
+	if got.DefaultPaymentPlan == nil || got.DefaultPaymentPlan.DurationMonths != wantDuration {
+		gotDuration := 0
+		if got.DefaultPaymentPlan != nil {
+			gotDuration = got.DefaultPaymentPlan.DurationMonths
+		}
+		log.Fatalf("Expected a duration of %v months, but got %v.", wantDuration, gotDuration)
 	}
 }
 
@@ -56,12 +59,12 @@ func TestCalculateLoanMaxTerm(t *testing.T) {
 		log.Fatalf("Error calculating the loan payment plan.")
 	}
 
-	want := domain.LoanPaymentPlan{
-		DurationMonths: maxLoanTerm,
-	}
-
-	if got.DurationMonths != want.DurationMonths {
-		log.Fatalf("Expected a duration of %v months, but got %v.", want.DurationMonths, got.DurationMonths)
+	if got.DefaultPaymentPlan == nil || got.DefaultPaymentPlan.DurationMonths != maxLoanTerm {
+		gotDuration := 0
+		if got.DefaultPaymentPlan != nil {
+			gotDuration = got.DefaultPaymentPlan.DurationMonths
+		}
+		log.Fatalf("Expected a duration of %v months, but got %v.", maxLoanTerm, gotDuration)
 	}
 }
 
@@ -83,12 +86,12 @@ func TestCalculateLoanMinTerm(t *testing.T) {
 		log.Fatalf("Error calculating the loan payment plan.")
 	}
 
-	want := domain.LoanPaymentPlan{
-		DurationMonths: minLoanTerm,
-	}
-
-	if got.DurationMonths != want.DurationMonths {
-		log.Fatalf("Expected a duration of %v month, but got %v.", want.DurationMonths, got.DurationMonths)
+	if got.DefaultPaymentPlan == nil || got.DefaultPaymentPlan.DurationMonths != minLoanTerm {
+		gotDuration := 0
+		if got.DefaultPaymentPlan != nil {
+			gotDuration = got.DefaultPaymentPlan.DurationMonths
+		}
+		log.Fatalf("Expected a duration of %v month, but got %v.", minLoanTerm, gotDuration)
 	}
 }
 
@@ -127,12 +130,14 @@ func TestCalculateZeroInterestAndEscrow(t *testing.T) {
 		log.Fatalf("Error calculating the loan payment plan.")
 	}
 
-	want := domain.LoanPaymentPlan{
-		DurationMonths: 10,
-	}
+	wantDuration := 10
 
-	if got.DurationMonths != want.DurationMonths {
-		log.Fatalf("Expected a duration of %v months, but got %v.", want.DurationMonths, got.DurationMonths)
+	if got.DefaultPaymentPlan == nil || got.DefaultPaymentPlan.DurationMonths != wantDuration {
+		gotDuration := 0
+		if got.DefaultPaymentPlan != nil {
+			gotDuration = got.DefaultPaymentPlan.DurationMonths
+		}
+		log.Fatalf("Expected a duration of %v months, but got %v.", wantDuration, gotDuration)
 	}
 }
 
@@ -229,12 +234,14 @@ func TestCalculateLoanInvalidDateFormat(t *testing.T) {
 func TestSaveLoanPaymentPlan(t *testing.T) {
 	mockUserID := uuid.Nil
 	mockLoansRepo := &MockLoansRepo{
-		SaveLoanPaymentPlanFunc: func(ctx context.Context, plan domain.LoanPaymentPlan) (db.Loan, error) {
+		SaveLoanPaymentPlanFunc: func(ctx context.Context, loan domain.Loan) (db.Loan, error) {
+			var defaultPlan pgtype.UUID
+			if loan.DefaultPaymentPlan != nil {
+				defaultPlan = pgtype.UUID{Bytes: loan.DefaultPaymentPlan.ID, Valid: true}
+			}
 			return db.Loan{
-				DurationMonths:   int32(plan.DurationMonths),
-				TotalPaid:        int32(plan.TotalPaid.Round(0).IntPart()),
-				TotalExpenditure: int32(plan.TotalExpenditure.Round(0).IntPart()),
-				CostOfCredit:     plan.CostOfCreditPercent.String(),
+				ID:                 pgtype.UUID{Bytes: uuid.Nil, Valid: true},
+				DefaultPaymentPlan: defaultPlan,
 			}, nil
 		},
 	}
@@ -251,31 +258,33 @@ func TestSaveLoanPaymentPlan(t *testing.T) {
 		StartDate:          "1970-01-01",
 	}
 
-	want := db.Loan{
-		DurationMonths:   12,
-		TotalPaid:        10383416,
-		TotalExpenditure: 383416,
-		CostOfCredit:     "3.83416398261762",
-	}
+	wantDuration := 12
+	wantTotalPaid := int64(10383416)
+	wantTotalExpenditure := int64(383416)
+	wantCostOfCredit := "3.83416398261762"
 
 	got, err := service.SaveLoanPaymentPlan(ctx, input)
 	if err != nil {
 		log.Fatalf("Error saving the loan payment plan: %v", err)
 	}
+	if got.DefaultPaymentPlan == nil {
+		log.Fatalf("Expected saved loan to include a default payment plan.")
+	}
 
-	if want.DurationMonths != got.DurationMonths {
-		log.Fatalf("Expected the duration in months saved on database (%v) to match the expected ones (%v), but they didn't.", got.DurationMonths, want.DurationMonths)
+	if wantDuration != got.DefaultPaymentPlan.DurationMonths {
+		log.Fatalf("Expected the duration in months saved on database (%v) to match the expected ones (%v), but they didn't.", got.DefaultPaymentPlan.DurationMonths, wantDuration)
 	}
-	if want.TotalPaid != got.TotalPaid {
-		log.Fatalf("Expected the total paid saved on database (%v cents) to match the expected one (%v cents), but it didn't.", got.TotalPaid, want.TotalPaid)
+	if wantTotalPaid != got.DefaultPaymentPlan.TotalPaid.Round(0).IntPart() {
+		log.Fatalf("Expected the total paid saved on database (%v cents) to match the expected one (%v cents), but it didn't.", got.DefaultPaymentPlan.TotalPaid.Round(0).IntPart(), wantTotalPaid)
 	}
-	if want.TotalExpenditure != got.TotalExpenditure {
-		log.Fatalf("Expected the total expenditure saved on database (%v cents) to match the expected one (%v cents), but it didn't.", got.TotalExpenditure, want.TotalExpenditure)
+	if wantTotalExpenditure != got.DefaultPaymentPlan.TotalExpenditure.Round(0).IntPart() {
+		log.Fatalf("Expected the total expenditure saved on database (%v cents) to match the expected one (%v cents), but it didn't.", got.DefaultPaymentPlan.TotalExpenditure.Round(0).IntPart(), wantTotalExpenditure)
 	}
-	if want.CostOfCredit != got.CostOfCredit {
-		log.Fatalf("Expected the cost of credit saved on database (%v%%) to match the expected one (%v%%), but it didn't.", got.CostOfCredit, want.CostOfCredit)
+	if wantCostOfCredit != got.DefaultPaymentPlan.CostOfCreditPercent.String() {
+		log.Fatalf("Expected the cost of credit saved on database (%v%%) to match the expected one (%v%%), but it didn't.", got.DefaultPaymentPlan.CostOfCreditPercent.String(), wantCostOfCredit)
 	}
 }
+
 func TestUpdateLoan(t *testing.T) {
 	originalName := "Original Name"
 	updatedName := "Updated Name"
@@ -297,11 +306,24 @@ func TestUpdateLoan(t *testing.T) {
 				},
 			}, nil
 		},
-		UpdateLoanFunc: func(ctx context.Context, plan domain.LoanPaymentPlan) (db.Loan, error) {
+		GetLoanByIDFunc: func(ctx context.Context, loanID uuid.UUID, userID uuid.UUID) (domain.Loan, error) {
+			return domain.Loan{
+				ID:   loanID,
+				Name: originalName,
+				DefaultPaymentPlan: &domain.LoanPaymentPlan{
+					Name: "Default Payment Plan",
+				},
+			}, nil
+		},
+		UpdateLoanFunc: func(ctx context.Context, loan domain.Loan) (db.Loan, error) {
 			return db.Loan{
-				Name:               plan.Name,
-				StartingPrincipal:  int32(plan.OriginalData.StartingPrincipal),
-				YearlyInterestRate: plan.OriginalData.YearlyInterestRate,
+				ID: pgtype.UUID{
+					Bytes: loan.ID,
+					Valid: true,
+				},
+				Name:               loan.Name,
+				StartingPrincipal:  int32(loan.OriginalData.StartingPrincipal),
+				YearlyInterestRate: loan.OriginalData.YearlyInterestRate,
 			}, nil
 		},
 	}
@@ -319,20 +341,14 @@ func TestUpdateLoan(t *testing.T) {
 		log.Fatalf("Error updating the loan payment plan: %v", err)
 	}
 
-	want := db.Loan{
-		Name:               updatedName,
-		StartingPrincipal:  int32(updatedPrincipal),
-		YearlyInterestRate: updatedInterest,
+	if updatedName != got.Name {
+		log.Fatalf("Updated loan name returned (%v) did not match the expected one (%v).", got.Name, updatedName)
 	}
-
-	if want.Name != got.Name {
-		log.Fatalf("Updated loan name returned (%v) did not match the expected one (%v).", got.Name, want.Name)
+	if int32(updatedPrincipal) != int32(got.OriginalData.StartingPrincipal) {
+		log.Fatalf("Updated principal returned (%v cents) did not match the expected one (%v cents).", got.OriginalData.StartingPrincipal, updatedPrincipal)
 	}
-	if want.StartingPrincipal != got.StartingPrincipal {
-		log.Fatalf("Updated principal returned (%v cents) did not match the expected one (%v cents).", got.StartingPrincipal, want.StartingPrincipal)
-	}
-	if want.YearlyInterestRate != got.YearlyInterestRate {
-		log.Fatalf("Updated interest rate returned (%v) did not match the expected one (%v).", got.YearlyInterestRate, want.YearlyInterestRate)
+	if updatedInterest != got.OriginalData.YearlyInterestRate {
+		log.Fatalf("Updated interest rate returned (%v) did not match the expected one (%v).", got.OriginalData.YearlyInterestRate, updatedInterest)
 	}
 }
 
@@ -359,8 +375,8 @@ func TestGetLoanNotFound(t *testing.T) {
 	mockUserID := uuid.Nil
 	mockLoanID := uuid.Nil
 	mockLoansRepo := &MockLoansRepo{
-		GetLoanByIDFunc: func(ctx context.Context, loanID uuid.UUID, userID uuid.UUID) (domain.LoanPaymentPlan, error) {
-			return domain.LoanPaymentPlan{}, fmt.Errorf("loan not found")
+		GetLoanByIDFunc: func(ctx context.Context, loanID uuid.UUID, userID uuid.UUID) (domain.Loan, error) {
+			return domain.Loan{}, fmt.Errorf("loan not found")
 		},
 	}
 	service := NewLoansService(mockLoansRepo)

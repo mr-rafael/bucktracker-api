@@ -24,11 +24,11 @@ type LoansService struct {
 }
 
 type LoansRepository interface {
-	SaveLoanPaymentPlan(context.Context, domain.LoanPaymentPlan) (db.Loan, error)
+	SaveLoanPaymentPlan(context.Context, domain.Loan) (db.Loan, error)
 	GetLoanPaymentPlansByUser(context.Context, uuid.UUID) ([]db.GetLoansByUserIDRow, error)
-	GetLoanByID(context.Context, uuid.UUID, uuid.UUID) (domain.LoanPaymentPlan, error)
+	GetLoanByID(context.Context, uuid.UUID, uuid.UUID) (domain.Loan, error)
 	GetLoanInitialData(context.Context, uuid.UUID, uuid.UUID) (domain.UpdateLoanData, error)
-	UpdateLoan(context.Context, domain.LoanPaymentPlan) (db.Loan, error)
+	UpdateLoan(context.Context, domain.Loan) (db.Loan, error)
 	DeleteLoan(context.Context, uuid.UUID, uuid.UUID) error
 }
 
@@ -45,37 +45,47 @@ const maxMonthlyPaymentCents = "100000000000"
 const minEscrowCents = "0"
 const maxEscrowCents = "100000000000"
 const maxPaymentYears = 30
+const defaultPaymentPlanName = "Default Payment Plan"
 
-func (s *LoansService) CalculateLoanPaymentPlan(input domain.LoansInput) (domain.LoanPaymentPlan, error) {
-	plan, err := initializePaymentPlan(input, uuid.Nil, "")
+func (s *LoansService) CalculateLoanPaymentPlan(input domain.LoansInput) (domain.Loan, error) {
+	loan, err := initializeLoan(input, uuid.Nil, "")
 	if err != nil {
-		return domain.LoanPaymentPlan{}, err
+		return domain.Loan{}, err
 	}
 
-	plan, err = calculatePaymentPlan(plan)
+	loan, err = calculatePaymentPlan(loan)
 	if err != nil {
-		return domain.LoanPaymentPlan{}, fmt.Errorf("Error calculating payment plan: %v", err)
+		return domain.Loan{}, fmt.Errorf("Error calculating payment plan: %v", err)
 	}
 
-	return plan, nil
+	return loan, nil
 }
 
-func (s *LoansService) SaveLoanPaymentPlan(ctx context.Context, input domain.SaveLoanInput) (db.Loan, error) {
-	plan, err := initializePaymentPlan(saveInputToLoanInput(input), input.UserID, input.LoanName)
+func (s *LoansService) SaveLoanPaymentPlan(ctx context.Context, input domain.SaveLoanInput) (domain.Loan, error) {
+	loan, err := initializeLoan(saveInputToLoanInput(input), input.UserID, input.LoanName)
 	if err != nil {
-		return db.Loan{}, err
+		return domain.Loan{}, err
 	}
 
-	plan, err = calculatePaymentPlan(plan)
+	loan, err = calculatePaymentPlan(loan)
 	if err != nil {
-		return db.Loan{}, fmt.Errorf("Error calculating payment plan: %v", err)
+		return domain.Loan{}, fmt.Errorf("Error calculating payment plan: %v", err)
 	}
-	result, err := s.loansRepo.SaveLoanPaymentPlan(ctx, plan)
+	// Newly created loans always start with a default plan and no principal payments.
+	if loan.DefaultPaymentPlan != nil {
+		loan.DefaultPaymentPlan.PrincipalPayments = nil
+	}
+	result, err := s.loansRepo.SaveLoanPaymentPlan(ctx, loan)
 	if err != nil {
-		return db.Loan{}, err
+		return domain.Loan{}, err
 	}
 
-	return result, nil
+	loan.ID = result.ID.Bytes
+	if result.DefaultPaymentPlan.Valid && loan.DefaultPaymentPlan != nil {
+		loan.DefaultPaymentPlan.ID = result.DefaultPaymentPlan.Bytes
+	}
+
+	return loan, nil
 }
 
 func (s *LoansService) GetLoansByUser(ctx context.Context, input uuid.UUID) ([]db.GetLoansByUserIDRow, error) {
@@ -86,109 +96,132 @@ func (s *LoansService) GetLoansByUser(ctx context.Context, input uuid.UUID) ([]d
 	return result, nil
 }
 
-func (s *LoansService) GetLoan(ctx context.Context, planID uuid.UUID, userID uuid.UUID) (domain.LoanPaymentPlan, error) {
-	result, err := s.loansRepo.GetLoanByID(ctx, planID, userID)
+func (s *LoansService) GetLoan(ctx context.Context, loanID uuid.UUID, userID uuid.UUID) (domain.Loan, error) {
+	result, err := s.loansRepo.GetLoanByID(ctx, loanID, userID)
 	if err != nil {
-		return domain.LoanPaymentPlan{}, err
+		return domain.Loan{}, err
 	}
 	return result, nil
 }
 
-func (s *LoansService) UpdateLoan(ctx context.Context, input domain.UpdateLoanInput) (db.Loan, error) {
+func (s *LoansService) UpdateLoan(ctx context.Context, input domain.UpdateLoanInput) (domain.Loan, error) {
 	originalData, err := s.loansRepo.GetLoanInitialData(ctx, input.ID, input.UserID)
 	if err != nil {
-		return db.Loan{}, fmt.Errorf("Loan not found.")
+		return domain.Loan{}, fmt.Errorf("Loan not found.")
 	}
 	patchedData := patchLoanFields(originalData, input)
 
-	plan, err := initializePaymentPlan(patchedData.LoanData, input.UserID, patchedData.Name)
+	existingLoan, err := s.loansRepo.GetLoanByID(ctx, input.ID, input.UserID)
 	if err != nil {
-		return db.Loan{}, err
-	}
-	plan, err = calculatePaymentPlan(plan)
-	if err != nil {
-		return db.Loan{}, fmt.Errorf("Error calculating payment plan: %v", err)
-	}
-	plan.ID = input.ID
-	result, err := s.loansRepo.UpdateLoan(ctx, plan)
-	if err != nil {
-		return db.Loan{}, err
+		return domain.Loan{}, fmt.Errorf("Loan not found.")
 	}
 
-	return result, nil
+	loan, err := initializeLoan(patchedData.LoanData, input.UserID, patchedData.Name)
+	if err != nil {
+		return domain.Loan{}, err
+	}
+	if existingLoan.DefaultPaymentPlan != nil {
+		loan.DefaultPaymentPlan = &domain.LoanPaymentPlan{
+			Name: existingLoan.DefaultPaymentPlan.Name,
+		}
+	}
+	loan, err = calculatePaymentPlan(loan)
+	if err != nil {
+		return domain.Loan{}, fmt.Errorf("Error calculating payment plan: %v", err)
+	}
+	loan.ID = input.ID
+	result, err := s.loansRepo.UpdateLoan(ctx, loan)
+	if err != nil {
+		return domain.Loan{}, err
+	}
+
+	loan.ID = result.ID.Bytes
+	if result.DefaultPaymentPlan.Valid && loan.DefaultPaymentPlan != nil {
+		loan.DefaultPaymentPlan.ID = result.DefaultPaymentPlan.Bytes
+	}
+
+	return loan, nil
 }
 
 func (s *LoansService) DeleteLoan(ctx context.Context, loanID uuid.UUID, userID uuid.UUID) error {
 	return s.loansRepo.DeleteLoan(ctx, loanID, userID)
 }
 
-func calculatePaymentPlan(plan domain.LoanPaymentPlan) (domain.LoanPaymentPlan, error) {
+func calculatePaymentPlan(loan domain.Loan) (domain.Loan, error) {
+	planName := defaultPaymentPlanName
+	if loan.DefaultPaymentPlan != nil && loan.DefaultPaymentPlan.Name != "" {
+		planName = loan.DefaultPaymentPlan.Name
+	}
+	loan.DefaultPaymentPlan = &domain.LoanPaymentPlan{
+		Name: planName,
+	}
+
 	i := 0
-	for plan.CurrentPrincipal.Compare(decimal.Zero) == 1 {
+	for loan.CurrentPrincipal.Compare(decimal.Zero) == 1 {
 		i++
 		if i > maxPaymentYears*12 {
-			remainder := plan.CurrentPrincipal.Div(decimal.NewFromInt(100)).Round(2).String()
-			return domain.LoanPaymentPlan{}, fmt.Errorf("The payment plan exceeds the year limit (%v years), with a remaining %v to pay", maxPaymentYears, remainder)
+			remainder := loan.CurrentPrincipal.Div(decimal.NewFromInt(100)).Round(2).String()
+			return domain.Loan{}, fmt.Errorf("The payment plan exceeds the year limit (%v years), with a remaining %v to pay", maxPaymentYears, remainder)
 		}
-		payment := plan.PassMonth()
-		payment = plan.GenerateInterest(payment)
-		payment = plan.ChargeEscrow(payment)
-		payment = plan.MakePayment(payment)
-		plan.Plan = append(plan.Plan, payment)
+		payment := loan.PassMonth()
+		payment = loan.GenerateInterest(payment)
+		payment = loan.ChargeEscrow(payment)
+		payment = loan.MakePayment(payment)
+		loan.DefaultPaymentPlan.Plan = append(loan.DefaultPaymentPlan.Plan, payment)
 	}
-	plan.FinalCalculations()
+	loan.FinalCalculations()
 
-	return plan, nil
+	return loan, nil
 }
 
-func initializePaymentPlan(input domain.LoansInput, userID uuid.UUID, name string) (domain.LoanPaymentPlan, error) {
-	plan := domain.LoanPaymentPlan{}
+func initializeLoan(input domain.LoansInput, userID uuid.UUID, name string) (domain.Loan, error) {
+	loan := domain.Loan{}
 	oneHundred := decimal.NewFromInt(100)
 
-	plan.OriginalData = input
-	plan.UserID = userID
-	plan.Name = name
+	loan.OriginalData = input
+	loan.UserID = userID
+	loan.Name = name
 
 	startingPrincipal := decimal.NewFromInt(int64(input.StartingPrincipal))
 	if !decimalIsBetween(startingPrincipal, minLoanCents, maxLoanCents) {
-		return domain.LoanPaymentPlan{}, LoanInputError{Message: fmt.Sprintf("invalid starting principal: '%v'. the accepted range is 0.01 - 1,000,000,000", startingPrincipal.Div(oneHundred).Round(2))}
+		return domain.Loan{}, LoanInputError{Message: fmt.Sprintf("invalid starting principal: '%v'. the accepted range is 0.01 - 1,000,000,000", startingPrincipal.Div(oneHundred).Round(2))}
 	}
-	plan.StartingPrincipal = startingPrincipal
-	plan.CurrentPrincipal = startingPrincipal
+	loan.StartingPrincipal = startingPrincipal
+	loan.CurrentPrincipal = startingPrincipal
 
 	monthlyInterestRate, err := getMonthlyAPRMultiplier(input.YearlyInterestRate)
 	if !stringNumberBetween(input.YearlyInterestRate, minInterestRate, maxInterestRate) {
-		return domain.LoanPaymentPlan{}, LoanInputError{Message: fmt.Sprintf("invalid interest rate: '%v'. the accepted range is 0%% - 100%%", input.YearlyInterestRate)}
+		return domain.Loan{}, LoanInputError{Message: fmt.Sprintf("invalid interest rate: '%v'. the accepted range is 0%% - 100%%", input.YearlyInterestRate)}
 	}
 	if err != nil {
-		return domain.LoanPaymentPlan{}, LoanInputError{Message: fmt.Sprintf("invalid interest rate: '%v'", input.YearlyInterestRate)}
+		return domain.Loan{}, LoanInputError{Message: fmt.Sprintf("invalid interest rate: '%v'", input.YearlyInterestRate)}
 	}
-	plan.InterestMultiplierM = monthlyInterestRate
+	loan.InterestMultiplierM = monthlyInterestRate
 
 	monthlyPayment := decimal.NewFromInt(int64(input.MonthlyPayment))
 	if !decimalIsBetween(monthlyPayment, minMonthlyPaymentCents, maxMonthlyPaymentCents) {
-		return domain.LoanPaymentPlan{}, LoanInputError{Message: fmt.Sprintf("invalid monthly payments: '%v'. the accepted range is 0.01 - 1,000,000,000", monthlyPayment.Div(oneHundred).Round(2))}
+		return domain.Loan{}, LoanInputError{Message: fmt.Sprintf("invalid monthly payments: '%v'. the accepted range is 0.01 - 1,000,000,000", monthlyPayment.Div(oneHundred).Round(2))}
 	}
-	plan.PaymentM = monthlyPayment
+	loan.PaymentM = monthlyPayment
 
 	escrow := decimal.NewFromInt(int64(input.EscrowPayment))
 	if !decimalIsBetween(escrow, minEscrowCents, maxEscrowCents) {
-		return domain.LoanPaymentPlan{}, LoanInputError{Message: fmt.Sprintf("invalid escrow payment: '%v'. the accepted range is 0.01 - 1,000,000,000", escrow.Div(oneHundred).Round(2))}
+		return domain.Loan{}, LoanInputError{Message: fmt.Sprintf("invalid escrow payment: '%v'. the accepted range is 0.01 - 1,000,000,000", escrow.Div(oneHundred).Round(2))}
 	}
-	plan.EscrowM = escrow
+	loan.EscrowM = escrow
 
 	startDate, err := time.Parse("2006-01-02", input.StartDate)
 	if err != nil {
-		return domain.LoanPaymentPlan{}, LoanInputError{Message: fmt.Sprintf("invalid start date: %v", input.StartDate)}
+		return domain.Loan{}, LoanInputError{Message: fmt.Sprintf("invalid start date: %v", input.StartDate)}
 	}
-	plan.Date = startDate
+	loan.Date = startDate
 
-	err = checkIfEnoughMonthlyPayment(plan)
+	err = checkIfEnoughMonthlyPayment(loan)
 	if err != nil {
-		return domain.LoanPaymentPlan{}, err
+		return domain.Loan{}, err
 	}
 
-	return plan, nil
+	return loan, nil
 }
 
 func saveInputToLoanInput(input domain.SaveLoanInput) domain.LoansInput {
@@ -199,15 +232,14 @@ func saveInputToLoanInput(input domain.SaveLoanInput) domain.LoansInput {
 		EscrowPayment:      input.EscrowPayment,
 		StartDate:          input.StartDate,
 	}
-
 }
 
-func checkIfEnoughMonthlyPayment(plan domain.LoanPaymentPlan) error {
-	firstMonthInterest := plan.StartingPrincipal.Mul(plan.InterestMultiplierM)
-	minPayment := firstMonthInterest.Add(plan.EscrowM)
+func checkIfEnoughMonthlyPayment(loan domain.Loan) error {
+	firstMonthInterest := loan.StartingPrincipal.Mul(loan.InterestMultiplierM)
+	minPayment := firstMonthInterest.Add(loan.EscrowM)
 	aHundred := decimal.NewFromInt32(100)
 
-	if plan.PaymentM.Compare(minPayment) != 1 {
+	if loan.PaymentM.Compare(minPayment) != 1 {
 		return fmt.Errorf("The monthly payment is not enough to cover interest and escrow payment for the first month (total $%v). Please enter a higher monthly payment.", minPayment.Div(aHundred).Round(2).String())
 	}
 	return nil

@@ -15,6 +15,7 @@ CREATE TABLE savings (
     total_interest_earnings INT NOT NULL,
     rate_of_return TEXT NOT NULL,
     inflation_adjusted_ror TEXT NOT NULL,
+    total_deposited INT NOT NULL DEFAULT 0,
     created_at TIMESTAMPTZ DEFAULT now()
 );
 

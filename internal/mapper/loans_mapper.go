@@ -1,17 +1,19 @@
 package mapper
 
 import (
-	"time"
-
 	"github.com/Mr-Rafael/bucktracker-api/internal/db"
 	"github.com/Mr-Rafael/bucktracker-api/internal/domain"
 	"github.com/Mr-Rafael/bucktracker-api/internal/dto"
 	"github.com/google/uuid"
 )
 
-func ToLoanResponse(plan domain.LoanPaymentPlan) dto.LoanResponseParams {
+func ToLoanResponse(loan domain.Loan) dto.LoanResponseParams {
 	response := dto.LoanResponseParams{}
+	if loan.DefaultPaymentPlan == nil {
+		return response
+	}
 
+	plan := loan.DefaultPaymentPlan
 	response.DurationMonths = plan.DurationMonths
 	response.TotalExpenditure = int(plan.TotalExpenditure.Round(0).IntPart())
 	response.TotalPaid = int(plan.TotalPaid.Round(0).IntPart())
@@ -29,20 +31,43 @@ func ToLoanResponse(plan domain.LoanPaymentPlan) dto.LoanResponseParams {
 	return response
 }
 
-func ToSaveLoanResponse(loan db.Loan) dto.LoanSaveResponseParams {
-	return dto.LoanSaveResponseParams{
-		ID:                  loan.ID.String(),
-		Name:                loan.Name,
-		StartingPrincipal:   int(loan.StartingPrincipal),
-		YearlyInterestRate:  loan.YearlyInterestRate,
-		MonthlyPayment:      int(loan.MonthlyPayment),
-		EscrowPayment:       int(loan.EscrowPayment),
-		StartDate:           loan.StartDate.Time.Format(time.RFC3339),
-		DurationMonths:      int(loan.DurationMonths),
-		TotalExpenditure:    int(loan.TotalExpenditure),
-		TotalPaid:           int(loan.TotalPaid),
-		CostOfCreditPercent: loan.CostOfCredit,
+func ToCreateLoanResponse(loan domain.Loan) dto.LoanCreateResponseParams {
+	response := dto.LoanCreateResponseParams{
+		ID:                 loan.ID.String(),
+		Name:               loan.Name,
+		StartingPrincipal:  loan.OriginalData.StartingPrincipal,
+		YearlyInterestRate: loan.OriginalData.YearlyInterestRate,
+		PaymentPlans:       []dto.PaymentPlanSummary{},
 	}
+	if loan.DefaultPaymentPlan != nil {
+		summary := dto.PaymentPlanSummary{
+			ID:             loan.DefaultPaymentPlan.ID.String(),
+			Name:           loan.DefaultPaymentPlan.Name,
+			DurationMonths: loan.DefaultPaymentPlan.DurationMonths,
+		}
+		response.DefaultPaymentPlan = summary
+		response.PaymentPlans = append(response.PaymentPlans, summary)
+	}
+	return response
+}
+
+func ToSaveLoanResponse(loan domain.Loan) dto.LoanSaveResponseParams {
+	response := dto.LoanSaveResponseParams{
+		ID:                 loan.ID.String(),
+		Name:               loan.Name,
+		StartingPrincipal:  loan.OriginalData.StartingPrincipal,
+		YearlyInterestRate: loan.OriginalData.YearlyInterestRate,
+		MonthlyPayment:     loan.OriginalData.MonthlyPayment,
+		EscrowPayment:      loan.OriginalData.EscrowPayment,
+		StartDate:          loan.OriginalData.StartDate,
+	}
+	if loan.DefaultPaymentPlan != nil {
+		response.DurationMonths = loan.DefaultPaymentPlan.DurationMonths
+		response.TotalExpenditure = int(loan.DefaultPaymentPlan.TotalExpenditure.Round(0).IntPart())
+		response.TotalPaid = int(loan.DefaultPaymentPlan.TotalPaid.Round(0).IntPart())
+		response.CostOfCreditPercent = loan.DefaultPaymentPlan.CostOfCreditPercent.String()
+	}
+	return response
 }
 
 func ToLoanListResponse(rows []db.GetLoansByUserIDRow) dto.LoanListResponseParams {
@@ -58,37 +83,36 @@ func ToLoanListResponse(rows []db.GetLoansByUserIDRow) dto.LoanListResponseParam
 	return params
 }
 
-func ToGetLoanResponse(plan domain.LoanPaymentPlan) dto.SavedLoanResponseParams {
-	originalParams := dto.OriginalLoanData{
-		StartingPrincipal:  plan.OriginalData.StartingPrincipal,
-		YearlyInterestRate: plan.OriginalData.YearlyInterestRate,
-		MonthlyPayment:     plan.OriginalData.MonthlyPayment,
-		EscrowPayment:      plan.OriginalData.EscrowPayment,
-		StartDate:          plan.OriginalData.StartDate,
-	}
-	monthlyInterestRate := multiplierToHighPrecisionPercent(plan.InterestMultiplierM)
-	calculatedParams := dto.CalculatedLoanData{
-		MonthlyInterestRate: monthlyInterestRate,
-		DurationMonths:      plan.DurationMonths,
-		TotalExpenditure:    int(plan.TotalExpenditure.Round(0).IntPart()),
-		TotalPaid:           int(plan.TotalPaid.Round(0).IntPart()),
-		CostOfCredit:        plan.CostOfCreditPercent.String(),
-	}
+func ToGetLoanResponse(loan domain.Loan) dto.SavedLoanResponseParams {
 	params := dto.SavedLoanResponseParams{
-		ID:             plan.ID.String(),
-		Name:           plan.Name,
-		OriginalData:   originalParams,
-		CalculatedData: calculatedParams,
+		ID:   loan.ID.String(),
+		Name: loan.Name,
+		OriginalData: dto.OriginalLoanData{
+			StartingPrincipal:  loan.OriginalData.StartingPrincipal,
+			YearlyInterestRate: loan.OriginalData.YearlyInterestRate,
+			MonthlyPayment:     loan.OriginalData.MonthlyPayment,
+			EscrowPayment:      loan.OriginalData.EscrowPayment,
+			StartDate:          loan.OriginalData.StartDate,
+		},
+		PaymentPlans: []dto.PaymentPlanSummary{},
 	}
-	for _, status := range plan.Plan {
-		params.PaymentPlan = append(params.PaymentPlan, dto.LoanStatus{
-			Date:          status.Date,
-			Payment:       int(status.Payment.Round(0).IntPart()),
-			Interest:      int(status.Interest.Round(0).IntPart()),
-			OtherPayments: int(status.OtherPayments.Round(0).IntPart()),
-			Paydown:       int(status.Paydown.Round(0).IntPart()),
-			Principal:     int(status.Principal.Round(0).IntPart()),
-		})
+	if loan.DefaultPaymentPlan != nil {
+		params.DefaultPaymentPlan = dto.PaymentPlanSummary{
+			ID:             loan.DefaultPaymentPlan.ID.String(),
+			Name:           loan.DefaultPaymentPlan.Name,
+			DurationMonths: loan.DefaultPaymentPlan.DurationMonths,
+		}
+	}
+	if len(loan.PaymentPlans) > 0 {
+		for _, plan := range loan.PaymentPlans {
+			params.PaymentPlans = append(params.PaymentPlans, dto.PaymentPlanSummary{
+				ID:             plan.ID.String(),
+				Name:           plan.Name,
+				DurationMonths: plan.DurationMonths,
+			})
+		}
+	} else if loan.DefaultPaymentPlan != nil {
+		params.PaymentPlans = append(params.PaymentPlans, params.DefaultPaymentPlan)
 	}
 	return params
 }

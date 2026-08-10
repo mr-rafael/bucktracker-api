@@ -14,6 +14,43 @@ import (
 	"github.com/shopspring/decimal"
 )
 
+func testLoanParams(userID uuid.UUID) domain.Loan {
+	originalData := dto.LoanRequestParams{
+		StartingPrincipal:  0,
+		YearlyInterestRate: "0",
+		MonthlyPayment:     0,
+		EscrowPayment:      0,
+		StartDate:          "1970-01-01",
+	}
+	status := domain.LoanStatus{
+		Date:          time.Now(),
+		Payment:       decimal.Zero,
+		Interest:      decimal.Zero,
+		OtherPayments: decimal.Zero,
+		Paydown:       decimal.Zero,
+		Principal:     decimal.Zero,
+	}
+	return domain.Loan{
+		ID:                  uuid.Nil,
+		UserID:              userID,
+		Name:                "test",
+		OriginalData:        domain.LoansInput(originalData),
+		StartingPrincipal:   decimal.Zero,
+		CurrentPrincipal:    decimal.Zero,
+		InterestMultiplierM: decimal.Zero,
+		PaymentM:            decimal.Zero,
+		EscrowM:             decimal.Zero,
+		Date:                time.Now(),
+		DefaultPaymentPlan: &domain.LoanPaymentPlan{
+			DurationMonths:      0,
+			TotalExpenditure:    decimal.Zero,
+			TotalPaid:           decimal.Zero,
+			CostOfCreditPercent: decimal.Zero,
+			Plan:                []domain.LoanStatus{status},
+		},
+	}
+}
+
 func TestSaveLoanPaymentPlan(t *testing.T) {
 	ctx := context.Background()
 	queries := initializeQueries(ctx)
@@ -24,38 +61,7 @@ func TestSaveLoanPaymentPlan(t *testing.T) {
 		log.Fatalf("failed to parse the test user uuid: %v", err)
 	}
 
-	originalData := dto.LoanRequestParams{
-		StartingPrincipal:  0,
-		YearlyInterestRate: "0",
-		MonthlyPayment:     0,
-		EscrowPayment:      0,
-		StartDate:          "1970-01-01",
-	}
-	params := domain.LoanPaymentPlan{
-		ID:                  uuid.Nil,
-		UserID:              testUser.ID.Bytes,
-		Name:                "test",
-		OriginalData:        domain.LoansInput(originalData),
-		StartingPrincipal:   decimal.Zero,
-		CurrentPrincipal:    decimal.Zero,
-		InterestMultiplierM: decimal.Zero,
-		PaymentM:            decimal.Zero,
-		EscrowM:             decimal.Zero,
-		Date:                time.Now(),
-		DurationMonths:      0,
-		TotalExpenditure:    decimal.Zero,
-		TotalPaid:           decimal.Zero,
-		CostOfCreditPercent: decimal.Zero,
-	}
-	status := domain.LoanStatus{
-		Date:          time.Now(),
-		Payment:       decimal.Zero,
-		Interest:      decimal.Zero,
-		OtherPayments: decimal.Zero,
-		Paydown:       decimal.Zero,
-		Principal:     decimal.Zero,
-	}
-	params.Plan = append(params.Plan, status)
+	params := testLoanParams(testUser.ID.Bytes)
 
 	got, err := repo.SaveLoanPaymentPlan(ctx, params)
 	if err != nil {
@@ -84,38 +90,7 @@ func TestGetLoanPaymentPlan(t *testing.T) {
 		log.Fatalf("failed to parse the test user uuid: %v", err)
 	}
 
-	originalData := dto.LoanRequestParams{
-		StartingPrincipal:  0,
-		YearlyInterestRate: "0",
-		MonthlyPayment:     0,
-		EscrowPayment:      0,
-		StartDate:          "1970-01-01",
-	}
-	status := domain.LoanStatus{
-		Date:          time.Now(),
-		Payment:       decimal.Zero,
-		Interest:      decimal.Zero,
-		OtherPayments: decimal.Zero,
-		Paydown:       decimal.Zero,
-		Principal:     decimal.Zero,
-	}
-	params := domain.LoanPaymentPlan{
-		ID:                  uuid.Nil,
-		UserID:              testUser.ID.Bytes,
-		Name:                "test",
-		OriginalData:        domain.LoansInput(originalData),
-		StartingPrincipal:   decimal.Zero,
-		CurrentPrincipal:    decimal.Zero,
-		InterestMultiplierM: decimal.Zero,
-		PaymentM:            decimal.Zero,
-		EscrowM:             decimal.Zero,
-		Date:                time.Now(),
-		DurationMonths:      0,
-		TotalExpenditure:    decimal.Zero,
-		TotalPaid:           decimal.Zero,
-		CostOfCreditPercent: decimal.Zero,
-	}
-	params.Plan = append(params.Plan, status)
+	params := testLoanParams(testUser.ID.Bytes)
 
 	plan, err := repo.SaveLoanPaymentPlan(ctx, params)
 	if err != nil {
@@ -154,29 +129,7 @@ func TestGetLoansByUser(t *testing.T) {
 	}
 	want := len(loansBefore) + 1
 
-	originalData := dto.LoanRequestParams{
-		StartingPrincipal:  0,
-		YearlyInterestRate: "0",
-		MonthlyPayment:     0,
-		EscrowPayment:      0,
-		StartDate:          "1970-01-01",
-	}
-	params := domain.LoanPaymentPlan{
-		ID:                  uuid.Nil,
-		UserID:              testUser.ID.Bytes,
-		Name:                "test",
-		OriginalData:        domain.LoansInput(originalData),
-		StartingPrincipal:   decimal.Zero,
-		CurrentPrincipal:    decimal.Zero,
-		InterestMultiplierM: decimal.Zero,
-		PaymentM:            decimal.Zero,
-		EscrowM:             decimal.Zero,
-		Date:                time.Now(),
-		DurationMonths:      0,
-		TotalExpenditure:    decimal.Zero,
-		TotalPaid:           decimal.Zero,
-		CostOfCreditPercent: decimal.Zero,
-	}
+	params := testLoanParams(testUser.ID.Bytes)
 	_, err = repo.SaveLoanPaymentPlan(ctx, params)
 	if err != nil {
 		log.Fatalf("Error saving loan in database: %v", err)
@@ -202,38 +155,7 @@ func TestUpdateLoan(t *testing.T) {
 		log.Fatalf("failed to parse the test user uuid: %v", err)
 	}
 
-	originalData := dto.LoanRequestParams{
-		StartingPrincipal:  0,
-		YearlyInterestRate: "0",
-		MonthlyPayment:     0,
-		EscrowPayment:      0,
-		StartDate:          "1970-01-01",
-	}
-	params := domain.LoanPaymentPlan{
-		ID:                  uuid.Nil,
-		UserID:              testUser.ID.Bytes,
-		Name:                "test",
-		OriginalData:        domain.LoansInput(originalData),
-		StartingPrincipal:   decimal.Zero,
-		CurrentPrincipal:    decimal.Zero,
-		InterestMultiplierM: decimal.Zero,
-		PaymentM:            decimal.Zero,
-		EscrowM:             decimal.Zero,
-		Date:                time.Now(),
-		DurationMonths:      0,
-		TotalExpenditure:    decimal.Zero,
-		TotalPaid:           decimal.Zero,
-		CostOfCreditPercent: decimal.Zero,
-	}
-	status := domain.LoanStatus{
-		Date:          time.Now(),
-		Payment:       decimal.Zero,
-		Interest:      decimal.Zero,
-		OtherPayments: decimal.Zero,
-		Paydown:       decimal.Zero,
-		Principal:     decimal.Zero,
-	}
-	params.Plan = append(params.Plan, status)
+	params := testLoanParams(testUser.ID.Bytes)
 
 	result, err := repo.SaveLoanPaymentPlan(ctx, params)
 
@@ -275,40 +197,14 @@ func TestDeleteLoan(t *testing.T) {
 		log.Fatalf("failed to parse the test user uuid: %v", err)
 	}
 
-	originalData := dto.LoanRequestParams{
-		StartingPrincipal:  0,
-		YearlyInterestRate: "0",
-		MonthlyPayment:     0,
-		EscrowPayment:      0,
-		StartDate:          "1970-01-01",
-	}
-	params := domain.LoanPaymentPlan{
-		ID:                  uuid.Nil,
-		UserID:              testUser.ID.Bytes,
-		Name:                "test",
-		OriginalData:        domain.LoansInput(originalData),
-		StartingPrincipal:   decimal.Zero,
-		CurrentPrincipal:    decimal.Zero,
-		InterestMultiplierM: decimal.Zero,
-		PaymentM:            decimal.Zero,
-		EscrowM:             decimal.Zero,
-		Date:                time.Now(),
-		DurationMonths:      0,
-		TotalExpenditure:    decimal.Zero,
-		TotalPaid:           decimal.Zero,
-		CostOfCreditPercent: decimal.Zero,
-	}
+	params := testLoanParams(testUser.ID.Bytes)
 	loanInfo, err := repo.SaveLoanPaymentPlan(ctx, params)
 	if err != nil {
 		log.Fatalf("Error saving loan in database: %v", err)
 	}
-	deleteParams := db.DeleteLoanParams{
-		ID:     loanInfo.ID,
-		UserID: loanInfo.UserID,
-	}
-	_, err = repo.queries.DeleteLoan(ctx, deleteParams)
+	err = repo.DeleteLoan(ctx, loanInfo.ID.Bytes, loanInfo.UserID.Bytes)
 	if err != nil {
-		log.Fatalf("Error deleting loan.")
+		log.Fatalf("Error deleting loan: %v", err)
 	}
 
 	getParams := db.GetLoanParams{

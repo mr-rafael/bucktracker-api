@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -10,8 +11,10 @@ import (
 
 	"github.com/Mr-Rafael/bucktracker-api/internal/db"
 	"github.com/Mr-Rafael/bucktracker-api/internal/domain"
+	"github.com/Mr-Rafael/bucktracker-api/internal/dto"
 	"github.com/Mr-Rafael/bucktracker-api/internal/service"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/stretchr/testify/require"
 )
 
@@ -63,8 +66,23 @@ func TestCalculateBadRequest(t *testing.T) {
 
 func TestSaveLoan(t *testing.T) {
 	mockUserID, _ := uuid.NewRandom()
+	mockLoanID, _ := uuid.NewRandom()
+	mockPlanID, _ := uuid.NewRandom()
 
-	mockLoansRepo := &service.MockLoansRepo{}
+	mockLoansRepo := &service.MockLoansRepo{
+		SaveLoanPaymentPlanFunc: func(ctx context.Context, loan domain.Loan) (db.Loan, error) {
+			require.NotNil(t, loan.DefaultPaymentPlan)
+			require.Equal(t, "Default Payment Plan", loan.DefaultPaymentPlan.Name)
+			require.Empty(t, loan.DefaultPaymentPlan.PrincipalPayments)
+			return db.Loan{
+				ID: pgtype.UUID{Bytes: mockLoanID, Valid: true},
+				DefaultPaymentPlan: pgtype.UUID{
+					Bytes: mockPlanID,
+					Valid: true,
+				},
+			}, nil
+		},
+	}
 	service := service.NewLoansService(mockLoansRepo)
 	handler := NewLoanHandler(service)
 
@@ -87,6 +105,18 @@ func TestSaveLoan(t *testing.T) {
 	handler.HandleSaveLoan(rr, req.WithContext(ctx))
 
 	require.Equal(t, http.StatusCreated, rr.Code)
+
+	var body dto.LoanCreateResponseParams
+	require.NoError(t, json.NewDecoder(rr.Body).Decode(&body))
+	require.Equal(t, mockLoanID.String(), body.ID)
+	require.Equal(t, "Test 2", body.Name)
+	require.Equal(t, 10000000, body.StartingPrincipal)
+	require.Equal(t, "5", body.YearlyInterestRate)
+	require.Equal(t, mockPlanID.String(), body.DefaultPaymentPlan.ID)
+	require.Equal(t, "Default Payment Plan", body.DefaultPaymentPlan.Name)
+	require.Equal(t, 12, body.DefaultPaymentPlan.DurationMonths)
+	require.Len(t, body.PaymentPlans, 1)
+	require.Equal(t, body.DefaultPaymentPlan, body.PaymentPlans[0])
 }
 
 func TestSaveLoanBadRequest(t *testing.T) {
@@ -212,11 +242,41 @@ func TestUpdateLoan(t *testing.T) {
 				},
 			}, nil
 		},
-		UpdateLoanFunc: func(ctx context.Context, plan domain.LoanPaymentPlan) (db.Loan, error) {
+		GetLoanByIDFunc: func(ctx context.Context, loanID uuid.UUID, userID uuid.UUID) (domain.Loan, error) {
+			planID, _ := uuid.NewRandom()
+			return domain.Loan{
+				ID:   loanID,
+				Name: "originalName",
+				OriginalData: domain.LoansInput{
+					StartingPrincipal:  10000,
+					YearlyInterestRate: "5",
+					MonthlyPayment:     1000,
+					EscrowPayment:      100,
+					StartDate:          "1970-01-01",
+				},
+				DefaultPaymentPlan: &domain.LoanPaymentPlan{
+					ID:             planID,
+					Name:           "Default Payment Plan",
+					DurationMonths: 12,
+				},
+				PaymentPlans: []domain.LoanPaymentPlan{
+					{
+						ID:             planID,
+						Name:           "Default Payment Plan",
+						DurationMonths: 12,
+					},
+				},
+			}, nil
+		},
+		UpdateLoanFunc: func(ctx context.Context, loan domain.Loan) (db.Loan, error) {
 			return db.Loan{
-				Name:               plan.Name,
-				StartingPrincipal:  int32(plan.OriginalData.StartingPrincipal),
-				YearlyInterestRate: plan.OriginalData.YearlyInterestRate,
+				ID: pgtype.UUID{
+					Bytes: loan.ID,
+					Valid: true,
+				},
+				Name:               loan.Name,
+				StartingPrincipal:  int32(loan.OriginalData.StartingPrincipal),
+				YearlyInterestRate: loan.OriginalData.YearlyInterestRate,
 			}, nil
 		},
 	}
