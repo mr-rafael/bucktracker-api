@@ -124,6 +124,40 @@ func (handler *LoanHandler) HandleGetLoan(writer http.ResponseWriter, request *h
 	respondWithJSON(writer, mapper.ToGetLoanResponse(result), http.StatusOK)
 }
 
+func (handler *LoanHandler) HandleGetPaymentPlan(writer http.ResponseWriter, request *http.Request) {
+	userID, ok := request.Context().Value(userIDKey).(string)
+	if !ok {
+		respondWithErrorCode(writer, "failed to get user ID from context", http.StatusUnauthorized)
+		return
+	}
+	loanID := request.PathValue("loanId")
+	paymentPlanID := request.PathValue("paymentPlanId")
+
+	userUUID, err := uuid.Parse(userID)
+	if err != nil {
+		respondWithErrorCode(writer, "failed to get user ID from context", http.StatusUnauthorized)
+		return
+	}
+	loanUUID, err := uuid.Parse(loanID)
+	if err != nil {
+		respondWithErrorCode(writer, "invalid loan ID in URL", http.StatusUnauthorized)
+		return
+	}
+	paymentPlanUUID, err := uuid.Parse(paymentPlanID)
+	if err != nil {
+		respondWithErrorCode(writer, "invalid payment plan ID in URL", http.StatusUnauthorized)
+		return
+	}
+
+	result, err := handler.loanService.GetPaymentPlan(context.Background(), loanUUID, paymentPlanUUID, userUUID)
+	if err != nil {
+		respondWithErrorCode(writer, fmt.Sprintf("attempt to fetch payment plan %v for loan %v by user %v", paymentPlanUUID, loanUUID, userUUID), http.StatusUnauthorized)
+		return
+	}
+
+	respondWithJSON(writer, mapper.ToPaymentPlanDetailResponse(result), http.StatusOK)
+}
+
 func (handler *LoanHandler) HandleUpdateLoan(writer http.ResponseWriter, request *http.Request) {
 	userID, ok := request.Context().Value(userIDKey).(string)
 	if !ok {

@@ -114,6 +114,47 @@ func TestGetLoanPaymentPlan(t *testing.T) {
 	}
 }
 
+func TestGetPaymentPlanByID(t *testing.T) {
+	ctx := context.Background()
+	queries := initializeQueries(ctx)
+	repo := NewLoansRepo(queries)
+
+	testUser, err := CreateTestUserIfNotExists()
+	if err != nil {
+		log.Fatalf("failed to parse the test user uuid: %v", err)
+	}
+
+	params := testLoanParams(testUser.ID.Bytes)
+	params.DefaultPaymentPlan.Name = "Default Payment Plan"
+	params.DefaultPaymentPlan.DurationMonths = 1
+	params.DefaultPaymentPlan.TotalExpenditure = decimal.NewFromInt(100)
+	params.DefaultPaymentPlan.TotalPaid = decimal.NewFromInt(200)
+	params.DefaultPaymentPlan.CostOfCreditPercent = decimal.NewFromInt(5)
+
+	savedLoan, err := repo.SaveLoanPaymentPlan(ctx, params)
+	if err != nil {
+		log.Fatalf("Error saving loan in database: %v", err)
+	}
+
+	got, err := repo.GetPaymentPlanByID(ctx, savedLoan.ID.Bytes, savedLoan.DefaultPaymentPlan.Bytes, savedLoan.UserID.Bytes)
+	if err != nil {
+		log.Fatalf("Error getting payment plan from database: %v", err)
+	}
+
+	if got.ID != savedLoan.DefaultPaymentPlan.Bytes {
+		log.Fatalf("Payment plan IDs did not match")
+	}
+	if got.Name != "Default Payment Plan" {
+		log.Fatalf("Expected payment plan name Default Payment Plan, got %v", got.Name)
+	}
+	if got.DurationMonths != 1 {
+		log.Fatalf("Expected duration months 1, got %v", got.DurationMonths)
+	}
+	if len(got.Plan) != 1 {
+		log.Fatalf("Expected 1 loan state in payment plan breakdown, got %v", len(got.Plan))
+	}
+}
+
 func TestGetLoansByUser(t *testing.T) {
 	ctx := context.Background()
 	queries := initializeQueries(ctx)

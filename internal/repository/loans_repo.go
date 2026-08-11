@@ -79,6 +79,58 @@ func (r *LoansRepo) GetLoanPaymentPlansByUser(ctx context.Context, userID uuid.U
 	return result, nil
 }
 
+func (r *LoansRepo) GetPaymentPlanByID(ctx context.Context, loanID uuid.UUID, paymentPlanID uuid.UUID, userID uuid.UUID) (domain.LoanPaymentPlan, error) {
+	_, err := r.queries.GetLoan(ctx, toLoanGetParams(loanID, userID))
+	if err != nil {
+		return domain.LoanPaymentPlan{}, fmt.Errorf("failed to fetch loan from database: %v", err)
+	}
+
+	paymentPlan, err := r.queries.GetPaymentPlanByIDAndLoanID(ctx, db.GetPaymentPlanByIDAndLoanIDParams{
+		ID: pgtype.UUID{
+			Bytes: paymentPlanID,
+			Valid: true,
+		},
+		LoanID: pgtype.UUID{
+			Bytes: loanID,
+			Valid: true,
+		},
+	})
+	if err != nil {
+		return domain.LoanPaymentPlan{}, fmt.Errorf("failed to fetch payment plan from database: %v", err)
+	}
+
+	costOfCredit, err := decimal.NewFromString(paymentPlan.CostOfCredit)
+	if err != nil {
+		return domain.LoanPaymentPlan{}, fmt.Errorf("corrupted cost of credit data for loan payment plan: %v", err)
+	}
+
+	plan := domain.LoanPaymentPlan{
+		ID:                  paymentPlan.ID.Bytes,
+		Name:                paymentPlan.Name,
+		DurationMonths:      int(paymentPlan.DurationMonths),
+		TotalExpenditure:    decimal.NewFromInt32(paymentPlan.TotalExpenditure),
+		TotalPaid:           decimal.NewFromInt32(paymentPlan.TotalPaid),
+		CostOfCreditPercent: costOfCredit,
+	}
+
+	states, err := r.queries.GetLoanStatesByPaymentPlanID(ctx, paymentPlan.ID)
+	if err != nil {
+		return domain.LoanPaymentPlan{}, fmt.Errorf("failed to fetch loan states from database: %v", err)
+	}
+	for _, state := range states {
+		plan.Plan = append(plan.Plan, domain.LoanStatus{
+			Date:          state.Date.Time,
+			Payment:       decimal.NewFromInt32(state.Payment),
+			Interest:      decimal.NewFromInt32(state.Interest),
+			OtherPayments: decimal.NewFromInt32(state.OtherPayments),
+			Paydown:       decimal.NewFromInt32(state.Paydown),
+			Principal:     decimal.NewFromInt32(state.Principal),
+		})
+	}
+
+	return plan, nil
+}
+
 func (r *LoansRepo) GetLoanByID(ctx context.Context, loanID uuid.UUID, userID uuid.UUID) (domain.Loan, error) {
 	loanQueryResult, err := r.queries.GetLoan(ctx, toLoanGetParams(loanID, userID))
 	if err != nil {

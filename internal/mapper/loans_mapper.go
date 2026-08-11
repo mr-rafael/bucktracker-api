@@ -83,6 +83,29 @@ func ToLoanListResponse(rows []db.GetLoansByUserIDRow) dto.LoanListResponseParam
 	return params
 }
 
+func ToPaymentPlanDetailResponse(plan domain.LoanPaymentPlan) dto.PaymentPlanDetailResponseParams {
+	response := dto.PaymentPlanDetailResponseParams{
+		ID:                   plan.ID.String(),
+		Name:                 plan.Name,
+		DurationMonths:       plan.DurationMonths,
+		TotalExpenditure:     int(plan.TotalExpenditure.Round(0).IntPart()),
+		TotalPaid:            int(plan.TotalPaid.Round(0).IntPart()),
+		CostOfCredit:         plan.CostOfCreditPercent.String(),
+		PaymentPlanBreakdown: []dto.LoanStatus{},
+	}
+	for _, status := range plan.Plan {
+		response.PaymentPlanBreakdown = append(response.PaymentPlanBreakdown, dto.LoanStatus{
+			Date:          status.Date,
+			Payment:       int(status.Payment.Round(0).IntPart()),
+			Interest:      int(status.Interest.Round(0).IntPart()),
+			OtherPayments: int(status.OtherPayments.Round(0).IntPart()),
+			Paydown:       int(status.Paydown.Round(0).IntPart()),
+			Principal:     int(status.Principal.Round(0).IntPart()),
+		})
+	}
+	return response
+}
+
 func ToGetLoanResponse(loan domain.Loan) dto.SavedLoanResponseParams {
 	params := dto.SavedLoanResponseParams{
 		ID:   loan.ID.String(),

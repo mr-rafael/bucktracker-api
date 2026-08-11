@@ -85,6 +85,31 @@ func (q *Queries) GetPaymentPlan(ctx context.Context, id pgtype.UUID) (PaymentPl
 	return i, err
 }
 
+const getPaymentPlanByIDAndLoanID = `-- name: GetPaymentPlanByIDAndLoanID :one
+SELECT id, loan_id, name, duration_months, total_expenditure, total_paid, cost_of_credit FROM payment_plans
+WHERE id = $1 AND loan_id = $2
+`
+
+type GetPaymentPlanByIDAndLoanIDParams struct {
+	ID     pgtype.UUID
+	LoanID pgtype.UUID
+}
+
+func (q *Queries) GetPaymentPlanByIDAndLoanID(ctx context.Context, arg GetPaymentPlanByIDAndLoanIDParams) (PaymentPlan, error) {
+	row := q.db.QueryRow(ctx, getPaymentPlanByIDAndLoanID, arg.ID, arg.LoanID)
+	var i PaymentPlan
+	err := row.Scan(
+		&i.ID,
+		&i.LoanID,
+		&i.Name,
+		&i.DurationMonths,
+		&i.TotalExpenditure,
+		&i.TotalPaid,
+		&i.CostOfCredit,
+	)
+	return i, err
+}
+
 const getPaymentPlansByLoanID = `-- name: GetPaymentPlansByLoanID :many
 SELECT id, loan_id, name, duration_months, total_expenditure, total_paid, cost_of_credit FROM payment_plans
 WHERE loan_id = $1

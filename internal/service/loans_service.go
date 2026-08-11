@@ -27,6 +27,7 @@ type LoansRepository interface {
 	SaveLoanPaymentPlan(context.Context, domain.Loan) (db.Loan, error)
 	GetLoanPaymentPlansByUser(context.Context, uuid.UUID) ([]db.GetLoansByUserIDRow, error)
 	GetLoanByID(context.Context, uuid.UUID, uuid.UUID) (domain.Loan, error)
+	GetPaymentPlanByID(context.Context, uuid.UUID, uuid.UUID, uuid.UUID) (domain.LoanPaymentPlan, error)
 	GetLoanInitialData(context.Context, uuid.UUID, uuid.UUID) (domain.UpdateLoanData, error)
 	UpdateLoan(context.Context, domain.Loan) (db.Loan, error)
 	DeleteLoan(context.Context, uuid.UUID, uuid.UUID) error
@@ -100,6 +101,14 @@ func (s *LoansService) GetLoan(ctx context.Context, loanID uuid.UUID, userID uui
 	result, err := s.loansRepo.GetLoanByID(ctx, loanID, userID)
 	if err != nil {
 		return domain.Loan{}, err
+	}
+	return result, nil
+}
+
+func (s *LoansService) GetPaymentPlan(ctx context.Context, loanID uuid.UUID, paymentPlanID uuid.UUID, userID uuid.UUID) (domain.LoanPaymentPlan, error) {
+	result, err := s.loansRepo.GetPaymentPlanByID(ctx, loanID, paymentPlanID, userID)
+	if err != nil {
+		return domain.LoanPaymentPlan{}, err
 	}
 	return result, nil
 }

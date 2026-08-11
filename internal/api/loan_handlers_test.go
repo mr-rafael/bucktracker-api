@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/Mr-Rafael/bucktracker-api/internal/db"
 	"github.com/Mr-Rafael/bucktracker-api/internal/domain"
@@ -15,6 +16,7 @@ import (
 	"github.com/Mr-Rafael/bucktracker-api/internal/service"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/require"
 )
 
@@ -220,6 +222,93 @@ func TestGetLoanUnauthorized(t *testing.T) {
 	rr := httptest.NewRecorder()
 
 	handler.HandleGetLoan(rr, req)
+
+	require.Equal(t, http.StatusUnauthorized, rr.Code)
+}
+
+func TestGetPaymentPlan(t *testing.T) {
+	mockUserID, _ := uuid.NewRandom()
+	mockLoanID, _ := uuid.NewRandom()
+	mockPlanID, _ := uuid.NewRandom()
+	stateDate := time.Date(1970, 2, 1, 0, 0, 0, 0, time.UTC)
+
+	mockLoansRepo := &service.MockLoansRepo{
+		GetPaymentPlanByIDFunc: func(ctx context.Context, loanID uuid.UUID, paymentPlanID uuid.UUID, userID uuid.UUID) (domain.LoanPaymentPlan, error) {
+			require.Equal(t, mockLoanID, loanID)
+			require.Equal(t, mockPlanID, paymentPlanID)
+			require.Equal(t, mockUserID, userID)
+			return domain.LoanPaymentPlan{
+				ID:                  mockPlanID,
+				Name:                "Default Payment Plan",
+				DurationMonths:      12,
+				TotalExpenditure:    decimal.NewFromInt(120000),
+				TotalPaid:           decimal.NewFromInt(10800000),
+				CostOfCreditPercent: decimal.RequireFromString("8.00"),
+				Plan: []domain.LoanStatus{
+					{
+						Date:          stateDate,
+						Payment:       decimal.NewFromInt(900076),
+						Interest:      decimal.NewFromInt(41667),
+						OtherPayments: decimal.NewFromInt(10000),
+						Paydown:       decimal.NewFromInt(848409),
+						Principal:     decimal.NewFromInt(9151591),
+					},
+				},
+			}, nil
+		},
+	}
+	service := service.NewLoansService(mockLoansRepo)
+	handler := NewLoanHandler(service)
+
+	req := httptest.NewRequest(
+		http.MethodGet,
+		fmt.Sprintf("/app/loans/%v/payment-plans/%v", mockLoanID.String(), mockPlanID.String()),
+		nil,
+	)
+	req.SetPathValue("loanId", mockLoanID.String())
+	req.SetPathValue("paymentPlanId", mockPlanID.String())
+	rr := httptest.NewRecorder()
+
+	ctx := context.WithValue(req.Context(), userIDKey, mockUserID.String())
+
+	handler.HandleGetPaymentPlan(rr, req.WithContext(ctx))
+
+	require.Equal(t, http.StatusOK, rr.Code)
+
+	var body dto.PaymentPlanDetailResponseParams
+	require.NoError(t, json.NewDecoder(rr.Body).Decode(&body))
+	require.Equal(t, mockPlanID.String(), body.ID)
+	require.Equal(t, "Default Payment Plan", body.Name)
+	require.Equal(t, 12, body.DurationMonths)
+	require.Equal(t, 120000, body.TotalExpenditure)
+	require.Equal(t, 10800000, body.TotalPaid)
+	require.Equal(t, "8", body.CostOfCredit)
+	require.Len(t, body.PaymentPlanBreakdown, 1)
+	require.Equal(t, 900076, body.PaymentPlanBreakdown[0].Payment)
+	require.Equal(t, 41667, body.PaymentPlanBreakdown[0].Interest)
+	require.Equal(t, 10000, body.PaymentPlanBreakdown[0].OtherPayments)
+	require.Equal(t, 848409, body.PaymentPlanBreakdown[0].Paydown)
+	require.Equal(t, 9151591, body.PaymentPlanBreakdown[0].Principal)
+}
+
+func TestGetPaymentPlanUnauthorized(t *testing.T) {
+	mockLoanID, _ := uuid.NewRandom()
+	mockPlanID, _ := uuid.NewRandom()
+
+	mockLoansRepo := &service.MockLoansRepo{}
+	service := service.NewLoansService(mockLoansRepo)
+	handler := NewLoanHandler(service)
+
+	req := httptest.NewRequest(
+		http.MethodGet,
+		fmt.Sprintf("/app/loans/%v/payment-plans/%v", mockLoanID.String(), mockPlanID.String()),
+		nil,
+	)
+	req.SetPathValue("loanId", mockLoanID.String())
+	req.SetPathValue("paymentPlanId", mockPlanID.String())
+	rr := httptest.NewRecorder()
+
+	handler.HandleGetPaymentPlan(rr, req)
 
 	require.Equal(t, http.StatusUnauthorized, rr.Code)
 }

@@ -14,6 +14,10 @@ RETURNING *;
 SELECT * FROM payment_plans
 WHERE id = $1;
 
+-- name: GetPaymentPlanByIDAndLoanID :one
+SELECT * FROM payment_plans
+WHERE id = $1 AND loan_id = $2;
+
 -- name: GetPaymentPlansByLoanID :many
 SELECT * FROM payment_plans
 WHERE loan_id = $1;

@@ -387,3 +387,34 @@ func TestGetLoanNotFound(t *testing.T) {
 		log.Fatalf("Expected an error log due to the loan not being found, but the function didn't return it: %v", err)
 	}
 }
+
+func TestGetPaymentPlan(t *testing.T) {
+	mockUserID, _ := uuid.NewRandom()
+	mockLoanID, _ := uuid.NewRandom()
+	mockPlanID, _ := uuid.NewRandom()
+	mockLoansRepo := &MockLoansRepo{
+		GetPaymentPlanByIDFunc: func(ctx context.Context, loanID uuid.UUID, paymentPlanID uuid.UUID, userID uuid.UUID) (domain.LoanPaymentPlan, error) {
+			if loanID != mockLoanID || paymentPlanID != mockPlanID || userID != mockUserID {
+				return domain.LoanPaymentPlan{}, fmt.Errorf("unexpected ids")
+			}
+			return domain.LoanPaymentPlan{
+				ID:             mockPlanID,
+				Name:           "Default Payment Plan",
+				DurationMonths: 12,
+			}, nil
+		},
+	}
+	service := NewLoansService(mockLoansRepo)
+	ctx := context.Background()
+
+	got, err := service.GetPaymentPlan(ctx, mockLoanID, mockPlanID, mockUserID)
+	if err != nil {
+		log.Fatalf("unexpected error fetching payment plan: %v", err)
+	}
+	if got.ID != mockPlanID {
+		log.Fatalf("expected payment plan id %v, got %v", mockPlanID, got.ID)
+	}
+	if got.Name != "Default Payment Plan" {
+		log.Fatalf("expected payment plan name Default Payment Plan, got %v", got.Name)
+	}
+}
