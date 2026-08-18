@@ -6,11 +6,13 @@ import (
 	"log"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/Mr-Rafael/bucktracker-api/internal/db"
 	"github.com/Mr-Rafael/bucktracker-api/internal/domain"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/shopspring/decimal"
 )
 
 func TestCalculateLoanPaymentPlan(t *testing.T) {
@@ -416,5 +418,71 @@ func TestGetPaymentPlan(t *testing.T) {
 	}
 	if got.Name != "Default Payment Plan" {
 		log.Fatalf("expected payment plan name Default Payment Plan, got %v", got.Name)
+	}
+}
+
+func TestCreatePaymentPlanWithPrincipalPayments(t *testing.T) {
+	mockUserID, _ := uuid.NewRandom()
+	mockLoanID, _ := uuid.NewRandom()
+	mockPlanID, _ := uuid.NewRandom()
+
+	mockLoansRepo := &MockLoansRepo{
+		GetLoanInitialDataFunc: func(ctx context.Context, loanID uuid.UUID, userID uuid.UUID) (domain.UpdateLoanData, error) {
+			return domain.UpdateLoanData{
+				ID:   loanID,
+				Name: "Test Loan",
+				LoanData: domain.LoansInput{
+					StartingPrincipal:  10000000,
+					YearlyInterestRate: "5",
+					MonthlyPayment:     900076,
+					EscrowPayment:      10000,
+					StartDate:          "1970-01-01",
+				},
+			}, nil
+		},
+		CreatePaymentPlanForLoanFunc: func(ctx context.Context, loanID uuid.UUID, userID uuid.UUID, plan domain.LoanPaymentPlan) (domain.LoanPaymentPlan, error) {
+			if len(plan.PrincipalPayments) != 1 {
+				return domain.LoanPaymentPlan{}, fmt.Errorf("expected 1 principal payment")
+			}
+			plan.ID = mockPlanID
+			return plan, nil
+		},
+	}
+	service := NewLoansService(mockLoansRepo)
+	ctx := context.Background()
+
+	baseline, err := service.CalculateLoanPaymentPlan(domain.LoansInput{
+		StartingPrincipal:  10000000,
+		YearlyInterestRate: "5",
+		MonthlyPayment:     900076,
+		EscrowPayment:      10000,
+		StartDate:          "1970-01-01",
+	})
+	if err != nil {
+		log.Fatalf("baseline calculation failed: %v", err)
+	}
+
+	got, err := service.CreatePaymentPlan(ctx, domain.CreatePaymentPlanInput{
+		LoanID: mockLoanID,
+		UserID: mockUserID,
+		Name:   "Extra Principal Plan",
+		PrincipalPayments: []domain.PrincipalPayment{
+			{
+				AmountPaid: decimal.NewFromInt(2000000),
+				Date:       time.Date(1970, 2, 1, 0, 0, 0, 0, time.UTC),
+			},
+		},
+	})
+	if err != nil {
+		log.Fatalf("unexpected error creating payment plan: %v", err)
+	}
+	if got.ID != mockPlanID {
+		log.Fatalf("expected payment plan id %v, got %v", mockPlanID, got.ID)
+	}
+	if got.Name != "Extra Principal Plan" {
+		log.Fatalf("expected payment plan name Extra Principal Plan, got %v", got.Name)
+	}
+	if got.DurationMonths >= baseline.DefaultPaymentPlan.DurationMonths {
+		log.Fatalf("expected extraordinary payment to shorten loan duration; got %v vs baseline %v", got.DurationMonths, baseline.DefaultPaymentPlan.DurationMonths)
 	}
 }

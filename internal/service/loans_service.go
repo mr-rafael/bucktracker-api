@@ -28,6 +28,7 @@ type LoansRepository interface {
 	GetLoanPaymentPlansByUser(context.Context, uuid.UUID) ([]db.GetLoansByUserIDRow, error)
 	GetLoanByID(context.Context, uuid.UUID, uuid.UUID) (domain.Loan, error)
 	GetPaymentPlanByID(context.Context, uuid.UUID, uuid.UUID, uuid.UUID) (domain.LoanPaymentPlan, error)
+	CreatePaymentPlanForLoan(context.Context, uuid.UUID, uuid.UUID, domain.LoanPaymentPlan) (domain.LoanPaymentPlan, error)
 	GetLoanInitialData(context.Context, uuid.UUID, uuid.UUID) (domain.UpdateLoanData, error)
 	UpdateLoan(context.Context, domain.Loan) (db.Loan, error)
 	DeleteLoan(context.Context, uuid.UUID, uuid.UUID) error
@@ -54,7 +55,7 @@ func (s *LoansService) CalculateLoanPaymentPlan(input domain.LoansInput) (domain
 		return domain.Loan{}, err
 	}
 
-	loan, err = calculatePaymentPlan(loan)
+	loan, err = calculatePaymentPlan(loan, nil)
 	if err != nil {
 		return domain.Loan{}, fmt.Errorf("Error calculating payment plan: %v", err)
 	}
@@ -68,7 +69,7 @@ func (s *LoansService) SaveLoanPaymentPlan(ctx context.Context, input domain.Sav
 		return domain.Loan{}, err
 	}
 
-	loan, err = calculatePaymentPlan(loan)
+	loan, err = calculatePaymentPlan(loan, nil)
 	if err != nil {
 		return domain.Loan{}, fmt.Errorf("Error calculating payment plan: %v", err)
 	}
@@ -113,6 +114,34 @@ func (s *LoansService) GetPaymentPlan(ctx context.Context, loanID uuid.UUID, pay
 	return result, nil
 }
 
+func (s *LoansService) CreatePaymentPlan(ctx context.Context, input domain.CreatePaymentPlanInput) (domain.LoanPaymentPlan, error) {
+	originalData, err := s.loansRepo.GetLoanInitialData(ctx, input.LoanID, input.UserID)
+	if err != nil {
+		return domain.LoanPaymentPlan{}, fmt.Errorf("Loan not found.")
+	}
+
+	loan, err := initializeLoan(originalData.LoanData, input.UserID, originalData.Name)
+	if err != nil {
+		return domain.LoanPaymentPlan{}, err
+	}
+
+	paymentPlan := &domain.LoanPaymentPlan{
+		Name:              input.Name,
+		PrincipalPayments: input.PrincipalPayments,
+	}
+
+	loan, err = calculatePaymentPlan(loan, paymentPlan)
+	if err != nil {
+		return domain.LoanPaymentPlan{}, fmt.Errorf("Error calculating payment plan: %v", err)
+	}
+
+	created, err := s.loansRepo.CreatePaymentPlanForLoan(ctx, input.LoanID, input.UserID, *loan.DefaultPaymentPlan)
+	if err != nil {
+		return domain.LoanPaymentPlan{}, err
+	}
+	return created, nil
+}
+
 func (s *LoansService) UpdateLoan(ctx context.Context, input domain.UpdateLoanInput) (domain.Loan, error) {
 	originalData, err := s.loansRepo.GetLoanInitialData(ctx, input.ID, input.UserID)
 	if err != nil {
@@ -134,7 +163,7 @@ func (s *LoansService) UpdateLoan(ctx context.Context, input domain.UpdateLoanIn
 			Name: existingLoan.DefaultPaymentPlan.Name,
 		}
 	}
-	loan, err = calculatePaymentPlan(loan)
+	loan, err = calculatePaymentPlan(loan, nil)
 	if err != nil {
 		return domain.Loan{}, fmt.Errorf("Error calculating payment plan: %v", err)
 	}
@@ -156,13 +185,17 @@ func (s *LoansService) DeleteLoan(ctx context.Context, loanID uuid.UUID, userID 
 	return s.loansRepo.DeleteLoan(ctx, loanID, userID)
 }
 
-func calculatePaymentPlan(loan domain.Loan) (domain.Loan, error) {
-	planName := defaultPaymentPlanName
-	if loan.DefaultPaymentPlan != nil && loan.DefaultPaymentPlan.Name != "" {
-		planName = loan.DefaultPaymentPlan.Name
-	}
-	loan.DefaultPaymentPlan = &domain.LoanPaymentPlan{
-		Name: planName,
+func calculatePaymentPlan(loan domain.Loan, paymentPlan *domain.LoanPaymentPlan) (domain.Loan, error) {
+	if paymentPlan == nil {
+		planName := defaultPaymentPlanName
+		if loan.DefaultPaymentPlan != nil && loan.DefaultPaymentPlan.Name != "" {
+			planName = loan.DefaultPaymentPlan.Name
+		}
+		loan.DefaultPaymentPlan = &domain.LoanPaymentPlan{
+			Name: planName,
+		}
+	} else {
+		loan.DefaultPaymentPlan = paymentPlan
 	}
 
 	i := 0

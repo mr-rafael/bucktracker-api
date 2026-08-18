@@ -59,13 +59,24 @@ type PaymentPlanSummary struct {
 }
 
 type PaymentPlanDetailResponseParams struct {
-	ID                   string       `json:"id"`
-	Name                 string       `json:"name"`
-	DurationMonths       int          `json:"durationMonths"`
-	TotalExpenditure     int          `json:"totalExpenditure"`
-	TotalPaid            int          `json:"totalPaid"`
-	CostOfCredit         string       `json:"costOfCredit"`
-	PaymentPlanBreakdown []LoanStatus `json:"paymentPlanBreakdown"`
+	ID                   string                   `json:"id"`
+	Name                 string                   `json:"name"`
+	DurationMonths       int                      `json:"durationMonths"`
+	TotalExpenditure     int                      `json:"totalExpenditure"`
+	TotalPaid            int                      `json:"totalPaid"`
+	CostOfCredit         string                   `json:"costOfCredit"`
+	PrincipalPayments    []PrincipalPaymentParams `json:"principalPayments"`
+	PaymentPlanBreakdown []LoanStatus             `json:"paymentPlanBreakdown"`
+}
+
+type PrincipalPaymentParams struct {
+	Date   string `json:"date"`
+	Amount int    `json:"amount"`
+}
+
+type CreatePaymentPlanRequestParams struct {
+	Name              string                   `json:"name"`
+	PrincipalPayments []PrincipalPaymentParams `json:"principalPayments"`
 }
 
 type LoanCreateResponseParams struct {

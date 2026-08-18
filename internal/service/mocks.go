@@ -28,6 +28,7 @@ type MockLoansRepo struct {
 	GetLoanPaymentPlansByUserFunc func(context.Context, uuid.UUID) ([]db.GetLoansByUserIDRow, error)
 	GetLoanByIDFunc               func(context.Context, uuid.UUID, uuid.UUID) (domain.Loan, error)
 	GetPaymentPlanByIDFunc        func(context.Context, uuid.UUID, uuid.UUID, uuid.UUID) (domain.LoanPaymentPlan, error)
+	CreatePaymentPlanForLoanFunc  func(context.Context, uuid.UUID, uuid.UUID, domain.LoanPaymentPlan) (domain.LoanPaymentPlan, error)
 	GetLoanInitialDataFunc        func(context.Context, uuid.UUID, uuid.UUID) (domain.UpdateLoanData, error)
 	UpdateLoanFunc                func(context.Context, domain.Loan) (db.Loan, error)
 	DeleteLoanFunc                func(ctx context.Context, loanID uuid.UUID, userID uuid.UUID) error
@@ -115,6 +116,13 @@ func (m *MockLoansRepo) GetLoanByID(ctx context.Context, loanID uuid.UUID, userI
 func (m *MockLoansRepo) GetPaymentPlanByID(ctx context.Context, loanID uuid.UUID, paymentPlanID uuid.UUID, userID uuid.UUID) (domain.LoanPaymentPlan, error) {
 	if m.GetPaymentPlanByIDFunc != nil {
 		return m.GetPaymentPlanByIDFunc(ctx, loanID, paymentPlanID, userID)
+	}
+	return domain.LoanPaymentPlan{}, nil
+}
+
+func (m *MockLoansRepo) CreatePaymentPlanForLoan(ctx context.Context, loanID uuid.UUID, userID uuid.UUID, plan domain.LoanPaymentPlan) (domain.LoanPaymentPlan, error) {
+	if m.CreatePaymentPlanForLoanFunc != nil {
+		return m.CreatePaymentPlanForLoanFunc(ctx, loanID, userID, plan)
 	}
 	return domain.LoanPaymentPlan{}, nil
 }

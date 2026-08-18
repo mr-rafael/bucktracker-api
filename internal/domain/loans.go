@@ -42,6 +42,13 @@ type UpdateLoanData struct {
 	LoanData LoansInput
 }
 
+type CreatePaymentPlanInput struct {
+	LoanID            uuid.UUID
+	UserID            uuid.UUID
+	Name              string
+	PrincipalPayments []PrincipalPayment
+}
+
 type Loan struct {
 	ID                  uuid.UUID
 	UserID              uuid.UUID
@@ -123,6 +130,15 @@ func (l *Loan) ChargeEscrow(s LoanStatus) LoanStatus {
 func (l *Loan) MakePayment(s LoanStatus) LoanStatus {
 	plan := l.ensureDefaultPaymentPlan()
 	paydown := l.PaymentM.Sub(s.Interest).Sub(s.OtherPayments)
+
+	extraordinaryTotal := decimal.Zero
+	for _, principalPayment := range plan.PrincipalPayments {
+		if principalPayment.Date.Year() == s.Date.Year() && principalPayment.Date.Month() == s.Date.Month() {
+			extraordinaryTotal = extraordinaryTotal.Add(principalPayment.AmountPaid)
+		}
+	}
+	paydown = paydown.Add(extraordinaryTotal)
+
 	if l.CurrentPrincipal.Cmp(paydown) == -1 {
 		payment := l.CurrentPrincipal.Add(s.Interest).Add(s.OtherPayments)
 		plan.TotalPaid = plan.TotalPaid.Add(payment)
@@ -131,8 +147,8 @@ func (l *Loan) MakePayment(s LoanStatus) LoanStatus {
 		l.CurrentPrincipal = decimal.Zero
 		s.Principal = l.CurrentPrincipal
 	} else {
-		plan.TotalPaid = plan.TotalPaid.Add(l.PaymentM)
-		s.Payment = l.PaymentM
+		plan.TotalPaid = plan.TotalPaid.Add(l.PaymentM).Add(extraordinaryTotal)
+		s.Payment = l.PaymentM.Add(extraordinaryTotal)
 		s.Paydown = paydown
 		l.CurrentPrincipal = l.CurrentPrincipal.Sub(paydown)
 		s.Principal = l.CurrentPrincipal

@@ -158,6 +158,54 @@ func (handler *LoanHandler) HandleGetPaymentPlan(writer http.ResponseWriter, req
 	respondWithJSON(writer, mapper.ToPaymentPlanDetailResponse(result), http.StatusOK)
 }
 
+func (handler *LoanHandler) HandleCreatePaymentPlan(writer http.ResponseWriter, request *http.Request) {
+	userID, ok := request.Context().Value(userIDKey).(string)
+	if !ok {
+		respondWithErrorCode(writer, "failed to get user ID from context", http.StatusUnauthorized)
+		return
+	}
+	loanID := request.PathValue("loanId")
+
+	userUUID, err := uuid.Parse(userID)
+	if err != nil {
+		respondWithErrorCode(writer, "failed to get user ID from context", http.StatusUnauthorized)
+		return
+	}
+	loanUUID, err := uuid.Parse(loanID)
+	if err != nil {
+		respondWithErrorCode(writer, "invalid loan ID in URL", http.StatusUnauthorized)
+		return
+	}
+
+	decoder := json.NewDecoder(request.Body)
+	reqParams := dto.CreatePaymentPlanRequestParams{}
+	err = decoder.Decode(&reqParams)
+	if err != nil {
+		respondWithErrorCode(writer, "received bad create payment plan request", http.StatusBadRequest)
+		return
+	}
+
+	input, err := mapper.ToCreatePaymentPlanInput(loanUUID, userUUID, reqParams)
+	if err != nil {
+		respondWithError(writer, err.Error(), err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	result, err := handler.loanService.CreatePaymentPlan(context.Background(), input)
+	if err != nil {
+		var inputErr service.LoanInputError
+		switch {
+		case errors.As(err, &inputErr):
+			respondWithError(writer, err.Error(), err.Error(), http.StatusBadRequest)
+		default:
+			respondWithError(writer, err.Error(), err.Error(), http.StatusInternalServerError)
+		}
+		return
+	}
+
+	respondWithJSON(writer, mapper.ToPaymentPlanDetailResponse(result), http.StatusCreated)
+}
+
 func (handler *LoanHandler) HandleUpdateLoan(writer http.ResponseWriter, request *http.Request) {
 	userID, ok := request.Context().Value(userIDKey).(string)
 	if !ok {

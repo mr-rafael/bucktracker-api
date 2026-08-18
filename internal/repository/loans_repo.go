@@ -128,7 +128,61 @@ func (r *LoansRepo) GetPaymentPlanByID(ctx context.Context, loanID uuid.UUID, pa
 		})
 	}
 
+	principalPayments, err := r.queries.GetPrincipalPaymentsByPaymentPlanID(ctx, paymentPlan.ID)
+	if err != nil {
+		return domain.LoanPaymentPlan{}, fmt.Errorf("failed to fetch principal payments from database: %v", err)
+	}
+	for _, payment := range principalPayments {
+		plan.PrincipalPayments = append(plan.PrincipalPayments, domain.PrincipalPayment{
+			AmountPaid: decimal.NewFromInt32(payment.AmountPaid),
+			Date:       payment.Date.Time,
+		})
+	}
+
 	return plan, nil
+}
+
+func (r *LoansRepo) CreatePaymentPlanForLoan(ctx context.Context, loanID uuid.UUID, userID uuid.UUID, plan domain.LoanPaymentPlan) (domain.LoanPaymentPlan, error) {
+	loan, err := r.queries.GetLoan(ctx, toLoanGetParams(loanID, userID))
+	if err != nil {
+		return domain.LoanPaymentPlan{}, fmt.Errorf("failed to fetch loan from database: %v", err)
+	}
+
+	paymentPlan, err := r.queries.CreatePaymentPlan(ctx, toPaymentPlanInsertParams(plan, loan.ID))
+	if err != nil {
+		return domain.LoanPaymentPlan{}, fmt.Errorf("Failed to save payment plan to database: %v", err)
+	}
+
+	for _, status := range plan.Plan {
+		_, err := r.queries.CreateLoanState(ctx, toLoanStateInsertParams(status, paymentPlan.ID))
+		if err != nil {
+			return domain.LoanPaymentPlan{}, fmt.Errorf("Failed to save loan status to database: %v", err)
+		}
+	}
+
+	for _, principalPayment := range plan.PrincipalPayments {
+		_, err := r.queries.CreatePrincipalPayment(ctx, toPrincipalPaymentInsertParams(principalPayment, paymentPlan.ID))
+		if err != nil {
+			return domain.LoanPaymentPlan{}, fmt.Errorf("Failed to save principal payment to database: %v", err)
+		}
+	}
+
+	costOfCredit, err := decimal.NewFromString(paymentPlan.CostOfCredit)
+	if err != nil {
+		return domain.LoanPaymentPlan{}, fmt.Errorf("corrupted cost of credit data for loan payment plan: %v", err)
+	}
+
+	created := domain.LoanPaymentPlan{
+		ID:                  paymentPlan.ID.Bytes,
+		Name:                paymentPlan.Name,
+		DurationMonths:      int(paymentPlan.DurationMonths),
+		TotalExpenditure:    decimal.NewFromInt32(paymentPlan.TotalExpenditure),
+		TotalPaid:           decimal.NewFromInt32(paymentPlan.TotalPaid),
+		CostOfCreditPercent: costOfCredit,
+		Plan:                plan.Plan,
+		PrincipalPayments:   plan.PrincipalPayments,
+	}
+	return created, nil
 }
 
 func (r *LoansRepo) GetLoanByID(ctx context.Context, loanID uuid.UUID, userID uuid.UUID) (domain.Loan, error) {

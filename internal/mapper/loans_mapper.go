@@ -1,10 +1,14 @@
 package mapper
 
 import (
+	"fmt"
+	"time"
+
 	"github.com/Mr-Rafael/bucktracker-api/internal/db"
 	"github.com/Mr-Rafael/bucktracker-api/internal/domain"
 	"github.com/Mr-Rafael/bucktracker-api/internal/dto"
 	"github.com/google/uuid"
+	"github.com/shopspring/decimal"
 )
 
 func ToLoanResponse(loan domain.Loan) dto.LoanResponseParams {
@@ -91,7 +95,14 @@ func ToPaymentPlanDetailResponse(plan domain.LoanPaymentPlan) dto.PaymentPlanDet
 		TotalExpenditure:     int(plan.TotalExpenditure.Round(0).IntPart()),
 		TotalPaid:            int(plan.TotalPaid.Round(0).IntPart()),
 		CostOfCredit:         plan.CostOfCreditPercent.String(),
+		PrincipalPayments:    []dto.PrincipalPaymentParams{},
 		PaymentPlanBreakdown: []dto.LoanStatus{},
+	}
+	for _, payment := range plan.PrincipalPayments {
+		response.PrincipalPayments = append(response.PrincipalPayments, dto.PrincipalPaymentParams{
+			Date:   payment.Date.Format("2006-01-02"),
+			Amount: int(payment.AmountPaid.Round(0).IntPart()),
+		})
 	}
 	for _, status := range plan.Plan {
 		response.PaymentPlanBreakdown = append(response.PaymentPlanBreakdown, dto.LoanStatus{
@@ -177,4 +188,24 @@ func ToUpdateLoanInput(loanID uuid.UUID, userId uuid.UUID, input dto.LoanUpdateR
 		StartDate:          input.StartDate,
 	}
 	return loan
+}
+
+func ToCreatePaymentPlanInput(loanID uuid.UUID, userID uuid.UUID, input dto.CreatePaymentPlanRequestParams) (domain.CreatePaymentPlanInput, error) {
+	principalPayments := make([]domain.PrincipalPayment, 0, len(input.PrincipalPayments))
+	for _, payment := range input.PrincipalPayments {
+		date, err := time.Parse("2006-01-02", payment.Date)
+		if err != nil {
+			return domain.CreatePaymentPlanInput{}, fmt.Errorf("invalid principal payment date: %v", payment.Date)
+		}
+		principalPayments = append(principalPayments, domain.PrincipalPayment{
+			AmountPaid: decimal.NewFromInt(int64(payment.Amount)),
+			Date:       date,
+		})
+	}
+	return domain.CreatePaymentPlanInput{
+		LoanID:            loanID,
+		UserID:            userID,
+		Name:              input.Name,
+		PrincipalPayments: principalPayments,
+	}, nil
 }
