@@ -1,8 +1,6 @@
 package mapper
 
 import (
-	"time"
-
 	"github.com/Mr-Rafael/bucktracker-api/internal/db"
 	"github.com/Mr-Rafael/bucktracker-api/internal/domain"
 	"github.com/Mr-Rafael/bucktracker-api/internal/dto"
@@ -41,7 +39,7 @@ func ToSaveSavingsResponse(savings db.Saving) dto.SavingsSaveResponseParams {
 		DurationYears:         int(savings.DurationYears),
 		TaxRate:               savings.TaxRate,
 		YearlyInflationRate:   savings.YearlyInflationRate.String,
-		StartDate:             savings.StartDate.Time.Format(time.RFC3339),
+		StartDate:             savings.StartDate.Time.Format("2006-01-02"),
 		MonthlyInterestRate:   savings.MonthlyInterestRate,
 		TotalDeposited:        int(savings.TotalDeposited),
 		TotalInterestEarnings: int(savings.TotalInterestEarnings),

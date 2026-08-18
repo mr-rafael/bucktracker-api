@@ -7,7 +7,7 @@ CREATE TABLE loans (
     yearly_interest_rate TEXT NOT NULL,
     monthly_payment INT NOT NULL,
     escrow_payment INT NOT NULL,
-    start_date TIMESTAMPTZ NOT NULL,
+    start_date DATE NOT NULL,
     monthly_interest_rate TEXT NOT NULL,
     default_payment_plan UUID,
     created_at TIMESTAMPTZ DEFAULT now()
@@ -31,13 +31,13 @@ CREATE TABLE principal_payments (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     payment_plan_id UUID NOT NULL REFERENCES payment_plans(id) ON DELETE CASCADE,
     amount_paid INT NOT NULL,
-    date TIMESTAMPTZ NOT NULL
+    date DATE NOT NULL
 );
 
 CREATE TABLE loan_state (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     payment_plan_id UUID REFERENCES payment_plans(id) ON DELETE CASCADE,
-    date TIMESTAMPTZ NOT NULL,
+    date DATE NOT NULL,
     payment INT NOT NULL,
     interest INT NOT NULL,
     other_payments INT NOT NULL,

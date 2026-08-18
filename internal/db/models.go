@@ -16,7 +16,7 @@ type Loan struct {
 	YearlyInterestRate  string
 	MonthlyPayment      int32
 	EscrowPayment       int32
-	StartDate           pgtype.Timestamptz
+	StartDate           pgtype.Date
 	MonthlyInterestRate string
 	DefaultPaymentPlan  pgtype.UUID
 	CreatedAt           pgtype.Timestamptz
@@ -25,7 +25,7 @@ type Loan struct {
 type LoanState struct {
 	ID            pgtype.UUID
 	PaymentPlanID pgtype.UUID
-	Date          pgtype.Timestamptz
+	Date          pgtype.Date
 	Payment       int32
 	Interest      int32
 	OtherPayments int32
@@ -47,7 +47,7 @@ type PrincipalPayment struct {
 	ID            pgtype.UUID
 	PaymentPlanID pgtype.UUID
 	AmountPaid    int32
-	Date          pgtype.Timestamptz
+	Date          pgtype.Date
 }
 
 type RefreshToken struct {
@@ -70,7 +70,7 @@ type Saving struct {
 	DurationYears         int32
 	TaxRate               string
 	YearlyInflationRate   pgtype.Text
-	StartDate             pgtype.Timestamptz
+	StartDate             pgtype.Date
 	MonthlyInterestRate   string
 	TotalInterestEarnings int32
 	RateOfReturn          string
@@ -82,7 +82,7 @@ type Saving struct {
 type SavingsState struct {
 	ID           pgtype.UUID
 	SavingsID    pgtype.UUID
-	Date         pgtype.Timestamptz
+	Date         pgtype.Date
 	Interest     int32
 	Tax          int32
 	Contribution int32

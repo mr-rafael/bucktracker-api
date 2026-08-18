@@ -26,7 +26,7 @@ RETURNING id, payment_plan_id, date, payment, interest, other_payments, paydown,
 
 type CreateLoanStateParams struct {
 	PaymentPlanID pgtype.UUID
-	Date          pgtype.Timestamptz
+	Date          pgtype.Date
 	Payment       int32
 	Interest      int32
 	OtherPayments int32

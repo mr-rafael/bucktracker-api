@@ -42,7 +42,7 @@ type CreateSavingsParams struct {
 	DurationYears         int32
 	TaxRate               string
 	YearlyInflationRate   pgtype.Text
-	StartDate             pgtype.Timestamptz
+	StartDate             pgtype.Date
 	MonthlyInterestRate   string
 	TotalInterestEarnings int32
 	TotalDeposited        int32
@@ -203,7 +203,7 @@ type GetSavingsInitialDataRow struct {
 	DurationYears       int32
 	TaxRate             string
 	YearlyInflationRate pgtype.Text
-	StartDate           pgtype.Timestamptz
+	StartDate           pgtype.Date
 }
 
 func (q *Queries) GetSavingsInitialData(ctx context.Context, arg GetSavingsInitialDataParams) (GetSavingsInitialDataRow, error) {
@@ -254,7 +254,7 @@ type UpdateSavingsParams struct {
 	DurationYears         int32
 	TaxRate               string
 	YearlyInflationRate   pgtype.Text
-	StartDate             pgtype.Timestamptz
+	StartDate             pgtype.Date
 	MonthlyInterestRate   string
 	TotalInterestEarnings int32
 	TotalDeposited        int32

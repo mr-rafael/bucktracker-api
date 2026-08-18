@@ -26,7 +26,7 @@ RETURNING id, savings_id, date, interest, tax, contribution, increase, capital
 
 type CreateSavingsStateParams struct {
 	SavingsID    pgtype.UUID
-	Date         pgtype.Timestamptz
+	Date         pgtype.Date
 	Interest     int32
 	Tax          int32
 	Contribution int32

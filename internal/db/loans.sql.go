@@ -32,7 +32,7 @@ type CreateLoanParams struct {
 	YearlyInterestRate  string
 	MonthlyPayment      int32
 	EscrowPayment       int32
-	StartDate           pgtype.Timestamptz
+	StartDate           pgtype.Date
 	MonthlyInterestRate string
 }
 
@@ -133,7 +133,7 @@ type GetLoanInitialDataRow struct {
 	YearlyInterestRate string
 	MonthlyPayment     int32
 	EscrowPayment      int32
-	StartDate          pgtype.Timestamptz
+	StartDate          pgtype.Date
 }
 
 func (q *Queries) GetLoanInitialData(ctx context.Context, arg GetLoanInitialDataParams) (GetLoanInitialDataRow, error) {
@@ -203,7 +203,7 @@ type UpdateLoanParams struct {
 	YearlyInterestRate  string
 	MonthlyPayment      int32
 	EscrowPayment       int32
-	StartDate           pgtype.Timestamptz
+	StartDate           pgtype.Date
 	MonthlyInterestRate string
 	DefaultPaymentPlan  pgtype.UUID
 }

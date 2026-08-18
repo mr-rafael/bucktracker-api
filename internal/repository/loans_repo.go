@@ -344,7 +344,7 @@ func toLoanInsertQueryParams(loan domain.Loan) (db.CreateLoanParams, error) {
 		YearlyInterestRate: loan.OriginalData.YearlyInterestRate,
 		MonthlyPayment:     int32(loan.OriginalData.MonthlyPayment),
 		EscrowPayment:      int32(loan.OriginalData.EscrowPayment),
-		StartDate: pgtype.Timestamptz{
+		StartDate: pgtype.Date{
 			Time:  startDate,
 			Valid: true,
 		},
@@ -368,7 +368,7 @@ func toLoanUpdateQueryParams(loan domain.Loan, loanID pgtype.UUID, defaultPaymen
 		YearlyInterestRate: loan.OriginalData.YearlyInterestRate,
 		MonthlyPayment:     int32(loan.OriginalData.MonthlyPayment),
 		EscrowPayment:      int32(loan.OriginalData.EscrowPayment),
-		StartDate: pgtype.Timestamptz{
+		StartDate: pgtype.Date{
 			Time:  startDate,
 			Valid: true,
 		},
@@ -411,7 +411,7 @@ func toPaymentPlanUpdateParams(plan domain.LoanPaymentPlan, paymentPlanID pgtype
 func toLoanStateInsertParams(status domain.LoanStatus, paymentPlanID pgtype.UUID) db.CreateLoanStateParams {
 	return db.CreateLoanStateParams{
 		PaymentPlanID: paymentPlanID,
-		Date: pgtype.Timestamptz{
+		Date: pgtype.Date{
 			Time:  status.Date,
 			Valid: true,
 		},
@@ -427,7 +427,7 @@ func toPrincipalPaymentInsertParams(payment domain.PrincipalPayment, paymentPlan
 	return db.CreatePrincipalPaymentParams{
 		PaymentPlanID: paymentPlanID,
 		AmountPaid:    int32(payment.AmountPaid.Round(0).IntPart()),
-		Date: pgtype.Timestamptz{
+		Date: pgtype.Date{
 			Time:  payment.Date,
 			Valid: true,
 		},
@@ -440,7 +440,7 @@ func toDomainLoan(loan db.Loan, paymentPlan db.PaymentPlan) (domain.Loan, error)
 		YearlyInterestRate: loan.YearlyInterestRate,
 		MonthlyPayment:     int(loan.MonthlyPayment),
 		EscrowPayment:      int(loan.EscrowPayment),
-		StartDate:          loan.StartDate.Time.Format(time.RFC3339),
+		StartDate:          loan.StartDate.Time.Format("2006-01-02"),
 	}
 	costOfCredit, err := decimal.NewFromString(paymentPlan.CostOfCredit)
 	if err != nil {

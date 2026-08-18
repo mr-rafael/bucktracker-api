@@ -24,7 +24,7 @@ RETURNING id, payment_plan_id, amount_paid, date
 type CreatePrincipalPaymentParams struct {
 	PaymentPlanID pgtype.UUID
 	AmountPaid    int32
-	Date          pgtype.Timestamptz
+	Date          pgtype.Date
 }
 
 func (q *Queries) CreatePrincipalPayment(ctx context.Context, arg CreatePrincipalPaymentParams) (PrincipalPayment, error) {

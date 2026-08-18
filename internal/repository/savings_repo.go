@@ -161,7 +161,7 @@ func toSavingsInsertQueryParams(plan domain.SavingsPlan) (db.CreateSavingsParams
 			String: plan.OriginalData.YearlyInflationRate,
 			Valid:  true,
 		},
-		StartDate: pgtype.Timestamptz{
+		StartDate: pgtype.Date{
 			Time:  startDate,
 			Valid: true,
 		},
@@ -176,7 +176,7 @@ func toSavingsInsertQueryParams(plan domain.SavingsPlan) (db.CreateSavingsParams
 func toSavingsStateInsertParams(status domain.SavingsStatus, savingsID pgtype.UUID) db.CreateSavingsStateParams {
 	params := db.CreateSavingsStateParams{
 		SavingsID: savingsID,
-		Date: pgtype.Timestamptz{
+		Date: pgtype.Date{
 			Time:  status.Date,
 			Valid: true,
 		},
@@ -214,7 +214,7 @@ func toSavingsUpdateQueryParams(plan domain.SavingsPlan) (db.UpdateSavingsParams
 			String: plan.OriginalData.YearlyInflationRate,
 			Valid:  true,
 		},
-		StartDate: pgtype.Timestamptz{
+		StartDate: pgtype.Date{
 			Time:  startDate,
 			Valid: true,
 		},
@@ -249,7 +249,7 @@ func toSavingsPlan(queryResult db.Saving) (domain.SavingsPlan, error) {
 		DurationYears:       int(queryResult.DurationYears),
 		TaxRate:             queryResult.TaxRate,
 		YearlyInflationRate: queryResult.YearlyInflationRate.String,
-		StartDate:           queryResult.StartDate.Time.Format(time.RFC3339),
+		StartDate:           queryResult.StartDate.Time.Format("2006-01-02"),
 	}
 	rateOfReturn, err := decimal.NewFromString(queryResult.RateOfReturn)
 	if err != nil {

@@ -10,7 +10,7 @@ CREATE TABLE savings (
     duration_years INT NOT NULL,
     tax_rate TEXT NOT NULL,
     yearly_inflation_rate TEXT,
-    start_date TIMESTAMPTZ NOT NULL,
+    start_date DATE NOT NULL,
     monthly_interest_rate TEXT NOT NULL,
     total_interest_earnings INT NOT NULL,
     rate_of_return TEXT NOT NULL,
@@ -22,7 +22,7 @@ CREATE TABLE savings (
 CREATE TABLE savings_state (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     savings_id UUID REFERENCES savings(id) ON DELETE CASCADE,
-    date TIMESTAMPTZ NOT NULL,
+    date DATE NOT NULL,
     interest INT NOT NULL,
     tax INT NOT NULL,
     contribution INT NOT NULL,
