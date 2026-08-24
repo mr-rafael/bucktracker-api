@@ -79,6 +79,11 @@ type CreatePaymentPlanRequestParams struct {
 	PrincipalPayments []PrincipalPaymentParams `json:"principalPayments"`
 }
 
+type UpdatePaymentPlanRequestParams struct {
+	Name              *string                   `json:"name"`
+	PrincipalPayments *[]PrincipalPaymentParams `json:"principalPayments"`
+}
+
 type LoanCreateResponseParams struct {
 	ID                 string               `json:"id"`
 	Name               string               `json:"name"`

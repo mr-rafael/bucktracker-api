@@ -29,6 +29,8 @@ type MockLoansRepo struct {
 	GetLoanByIDFunc               func(context.Context, uuid.UUID, uuid.UUID) (domain.Loan, error)
 	GetPaymentPlanByIDFunc        func(context.Context, uuid.UUID, uuid.UUID, uuid.UUID) (domain.LoanPaymentPlan, error)
 	CreatePaymentPlanForLoanFunc  func(context.Context, uuid.UUID, uuid.UUID, domain.LoanPaymentPlan) (domain.LoanPaymentPlan, error)
+	UpdatePaymentPlanForLoanFunc  func(context.Context, uuid.UUID, uuid.UUID, domain.LoanPaymentPlan) (domain.LoanPaymentPlan, error)
+	UpdatePaymentPlanNameFunc     func(context.Context, uuid.UUID, uuid.UUID, uuid.UUID, string) (domain.LoanPaymentPlan, error)
 	GetLoanInitialDataFunc        func(context.Context, uuid.UUID, uuid.UUID) (domain.UpdateLoanData, error)
 	UpdateLoanFunc                func(context.Context, domain.Loan) (db.Loan, error)
 	DeleteLoanFunc                func(ctx context.Context, loanID uuid.UUID, userID uuid.UUID) error
@@ -123,6 +125,20 @@ func (m *MockLoansRepo) GetPaymentPlanByID(ctx context.Context, loanID uuid.UUID
 func (m *MockLoansRepo) CreatePaymentPlanForLoan(ctx context.Context, loanID uuid.UUID, userID uuid.UUID, plan domain.LoanPaymentPlan) (domain.LoanPaymentPlan, error) {
 	if m.CreatePaymentPlanForLoanFunc != nil {
 		return m.CreatePaymentPlanForLoanFunc(ctx, loanID, userID, plan)
+	}
+	return domain.LoanPaymentPlan{}, nil
+}
+
+func (m *MockLoansRepo) UpdatePaymentPlanForLoan(ctx context.Context, loanID uuid.UUID, userID uuid.UUID, plan domain.LoanPaymentPlan) (domain.LoanPaymentPlan, error) {
+	if m.UpdatePaymentPlanForLoanFunc != nil {
+		return m.UpdatePaymentPlanForLoanFunc(ctx, loanID, userID, plan)
+	}
+	return domain.LoanPaymentPlan{}, nil
+}
+
+func (m *MockLoansRepo) UpdatePaymentPlanName(ctx context.Context, loanID uuid.UUID, paymentPlanID uuid.UUID, userID uuid.UUID, name string) (domain.LoanPaymentPlan, error) {
+	if m.UpdatePaymentPlanNameFunc != nil {
+		return m.UpdatePaymentPlanNameFunc(ctx, loanID, paymentPlanID, userID, name)
 	}
 	return domain.LoanPaymentPlan{}, nil
 }

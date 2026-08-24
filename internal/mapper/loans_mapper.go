@@ -209,3 +209,27 @@ func ToCreatePaymentPlanInput(loanID uuid.UUID, userID uuid.UUID, input dto.Crea
 		PrincipalPayments: principalPayments,
 	}, nil
 }
+
+func ToUpdatePaymentPlanInput(loanID uuid.UUID, paymentPlanID uuid.UUID, userID uuid.UUID, input dto.UpdatePaymentPlanRequestParams) (domain.UpdatePaymentPlanInput, error) {
+	result := domain.UpdatePaymentPlanInput{
+		LoanID:        loanID,
+		PaymentPlanID: paymentPlanID,
+		UserID:        userID,
+		Name:          input.Name,
+	}
+	if input.PrincipalPayments != nil {
+		principalPayments := make([]domain.PrincipalPayment, 0, len(*input.PrincipalPayments))
+		for _, payment := range *input.PrincipalPayments {
+			date, err := time.Parse("2006-01-02", payment.Date)
+			if err != nil {
+				return domain.UpdatePaymentPlanInput{}, fmt.Errorf("invalid principal payment date: %v", payment.Date)
+			}
+			principalPayments = append(principalPayments, domain.PrincipalPayment{
+				AmountPaid: decimal.NewFromInt(int64(payment.Amount)),
+				Date:       date,
+			})
+		}
+		result.PrincipalPayments = &principalPayments
+	}
+	return result, nil
+}

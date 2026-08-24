@@ -430,6 +430,161 @@ func TestCreatePaymentPlanBadRequest(t *testing.T) {
 	require.Equal(t, http.StatusBadRequest, rr.Code)
 }
 
+func TestUpdatePaymentPlanNameOnly(t *testing.T) {
+	mockUserID, _ := uuid.NewRandom()
+	mockLoanID, _ := uuid.NewRandom()
+	mockPlanID, _ := uuid.NewRandom()
+
+	mockLoansRepo := &service.MockLoansRepo{
+		GetPaymentPlanByIDFunc: func(ctx context.Context, loanID uuid.UUID, paymentPlanID uuid.UUID, userID uuid.UUID) (domain.LoanPaymentPlan, error) {
+			return domain.LoanPaymentPlan{
+				ID:             mockPlanID,
+				Name:           "Old Name",
+				DurationMonths: 12,
+			}, nil
+		},
+		UpdatePaymentPlanNameFunc: func(ctx context.Context, loanID uuid.UUID, paymentPlanID uuid.UUID, userID uuid.UUID, name string) (domain.LoanPaymentPlan, error) {
+			require.Equal(t, "New Name", name)
+			return domain.LoanPaymentPlan{
+				ID:             mockPlanID,
+				Name:           name,
+				DurationMonths: 12,
+			}, nil
+		},
+	}
+	service := service.NewLoansService(mockLoansRepo)
+	handler := NewLoanHandler(service)
+
+	req := httptest.NewRequest(
+		http.MethodPatch,
+		fmt.Sprintf("/app/loans/%v/payment-plans/%v", mockLoanID.String(), mockPlanID.String()),
+		strings.NewReader(`{"name":"New Name"}`),
+	)
+	req.SetPathValue("loanId", mockLoanID.String())
+	req.SetPathValue("paymentPlanId", mockPlanID.String())
+	rr := httptest.NewRecorder()
+
+	ctx := context.WithValue(req.Context(), userIDKey, mockUserID.String())
+	handler.HandleUpdatePaymentPlan(rr, req.WithContext(ctx))
+
+	require.Equal(t, http.StatusOK, rr.Code)
+
+	var body dto.PaymentPlanDetailResponseParams
+	require.NoError(t, json.NewDecoder(rr.Body).Decode(&body))
+	require.Equal(t, mockPlanID.String(), body.ID)
+	require.Equal(t, "New Name", body.Name)
+	require.Equal(t, 12, body.DurationMonths)
+}
+
+func TestUpdatePaymentPlanReplacePayments(t *testing.T) {
+	mockUserID, _ := uuid.NewRandom()
+	mockLoanID, _ := uuid.NewRandom()
+	mockPlanID, _ := uuid.NewRandom()
+
+	mockLoansRepo := &service.MockLoansRepo{
+		GetPaymentPlanByIDFunc: func(ctx context.Context, loanID uuid.UUID, paymentPlanID uuid.UUID, userID uuid.UUID) (domain.LoanPaymentPlan, error) {
+			return domain.LoanPaymentPlan{
+				ID:             mockPlanID,
+				Name:           "Extra Principal Plan",
+				DurationMonths: 12,
+			}, nil
+		},
+		GetLoanInitialDataFunc: func(ctx context.Context, loanID uuid.UUID, userID uuid.UUID) (domain.UpdateLoanData, error) {
+			return domain.UpdateLoanData{
+				ID:   loanID,
+				Name: "Test Loan",
+				LoanData: domain.LoansInput{
+					StartingPrincipal:  10000000,
+					YearlyInterestRate: "5",
+					MonthlyPayment:     900076,
+					EscrowPayment:      10000,
+					StartDate:          "1970-01-01",
+				},
+			}, nil
+		},
+		UpdatePaymentPlanForLoanFunc: func(ctx context.Context, loanID uuid.UUID, userID uuid.UUID, plan domain.LoanPaymentPlan) (domain.LoanPaymentPlan, error) {
+			require.Equal(t, mockPlanID, plan.ID)
+			require.Equal(t, "Extra Principal Plan", plan.Name)
+			require.Len(t, plan.PrincipalPayments, 1)
+			require.Equal(t, int64(500000), plan.PrincipalPayments[0].AmountPaid.IntPart())
+			return plan, nil
+		},
+	}
+	service := service.NewLoansService(mockLoansRepo)
+	handler := NewLoanHandler(service)
+
+	req := httptest.NewRequest(
+		http.MethodPatch,
+		fmt.Sprintf("/app/loans/%v/payment-plans/%v", mockLoanID.String(), mockPlanID.String()),
+		strings.NewReader(`{
+			"principalPayments": [{"date":"1970-02-01","amount":500000}]
+		}`),
+	)
+	req.SetPathValue("loanId", mockLoanID.String())
+	req.SetPathValue("paymentPlanId", mockPlanID.String())
+	rr := httptest.NewRecorder()
+
+	ctx := context.WithValue(req.Context(), userIDKey, mockUserID.String())
+	handler.HandleUpdatePaymentPlan(rr, req.WithContext(ctx))
+
+	require.Equal(t, http.StatusOK, rr.Code)
+
+	var body dto.PaymentPlanDetailResponseParams
+	require.NoError(t, json.NewDecoder(rr.Body).Decode(&body))
+	require.Equal(t, mockPlanID.String(), body.ID)
+	require.Equal(t, "Extra Principal Plan", body.Name)
+	require.Len(t, body.PrincipalPayments, 1)
+	require.Equal(t, "1970-02-01", body.PrincipalPayments[0].Date)
+	require.Equal(t, 500000, body.PrincipalPayments[0].Amount)
+	require.NotEmpty(t, body.PaymentPlanBreakdown)
+}
+
+func TestUpdatePaymentPlanEmptyBadRequest(t *testing.T) {
+	mockUserID, _ := uuid.NewRandom()
+	mockLoanID, _ := uuid.NewRandom()
+	mockPlanID, _ := uuid.NewRandom()
+
+	mockLoansRepo := &service.MockLoansRepo{}
+	service := service.NewLoansService(mockLoansRepo)
+	handler := NewLoanHandler(service)
+
+	req := httptest.NewRequest(
+		http.MethodPatch,
+		fmt.Sprintf("/app/loans/%v/payment-plans/%v", mockLoanID.String(), mockPlanID.String()),
+		strings.NewReader(`{}`),
+	)
+	req.SetPathValue("loanId", mockLoanID.String())
+	req.SetPathValue("paymentPlanId", mockPlanID.String())
+	rr := httptest.NewRecorder()
+
+	ctx := context.WithValue(req.Context(), userIDKey, mockUserID.String())
+	handler.HandleUpdatePaymentPlan(rr, req.WithContext(ctx))
+
+	require.Equal(t, http.StatusBadRequest, rr.Code)
+}
+
+func TestUpdatePaymentPlanUnauthorized(t *testing.T) {
+	mockLoanID, _ := uuid.NewRandom()
+	mockPlanID, _ := uuid.NewRandom()
+
+	mockLoansRepo := &service.MockLoansRepo{}
+	service := service.NewLoansService(mockLoansRepo)
+	handler := NewLoanHandler(service)
+
+	req := httptest.NewRequest(
+		http.MethodPatch,
+		fmt.Sprintf("/app/loans/%v/payment-plans/%v", mockLoanID.String(), mockPlanID.String()),
+		strings.NewReader(`{"name":"New Name"}`),
+	)
+	req.SetPathValue("loanId", mockLoanID.String())
+	req.SetPathValue("paymentPlanId", mockPlanID.String())
+	rr := httptest.NewRecorder()
+
+	handler.HandleUpdatePaymentPlan(rr, req)
+
+	require.Equal(t, http.StatusUnauthorized, rr.Code)
+}
+
 func TestUpdateLoan(t *testing.T) {
 	mockUserID, _ := uuid.NewRandom()
 	mockLoanID, _ := uuid.NewRandom()

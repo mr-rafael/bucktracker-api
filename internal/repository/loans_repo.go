@@ -185,6 +185,89 @@ func (r *LoansRepo) CreatePaymentPlanForLoan(ctx context.Context, loanID uuid.UU
 	return created, nil
 }
 
+func (r *LoansRepo) UpdatePaymentPlanForLoan(ctx context.Context, loanID uuid.UUID, userID uuid.UUID, plan domain.LoanPaymentPlan) (domain.LoanPaymentPlan, error) {
+	_, err := r.queries.GetLoan(ctx, toLoanGetParams(loanID, userID))
+	if err != nil {
+		return domain.LoanPaymentPlan{}, fmt.Errorf("failed to fetch loan from database: %v", err)
+	}
+
+	existingPlan, err := r.queries.GetPaymentPlanByIDAndLoanID(ctx, db.GetPaymentPlanByIDAndLoanIDParams{
+		ID: pgtype.UUID{
+			Bytes: plan.ID,
+			Valid: true,
+		},
+		LoanID: pgtype.UUID{
+			Bytes: loanID,
+			Valid: true,
+		},
+	})
+	if err != nil {
+		return domain.LoanPaymentPlan{}, fmt.Errorf("failed to fetch payment plan from database: %v", err)
+	}
+
+	paymentPlan, err := r.queries.UpdatePaymentPlan(ctx, toPaymentPlanUpdateParams(plan, existingPlan.ID))
+	if err != nil {
+		return domain.LoanPaymentPlan{}, fmt.Errorf("Failed to update payment plan on database: %v", err)
+	}
+
+	err = r.queries.DeleteLoanStatesByPaymentPlanID(ctx, existingPlan.ID)
+	if err != nil {
+		return domain.LoanPaymentPlan{}, fmt.Errorf("Error deleting old payment plan data: %v", err)
+	}
+	for _, status := range plan.Plan {
+		_, err := r.queries.CreateLoanState(ctx, toLoanStateInsertParams(status, existingPlan.ID))
+		if err != nil {
+			return domain.LoanPaymentPlan{}, fmt.Errorf("Failed to save loan status to database: %v", err)
+		}
+	}
+
+	err = r.queries.DeletePrincipalPaymentsByPaymentPlanID(ctx, existingPlan.ID)
+	if err != nil {
+		return domain.LoanPaymentPlan{}, fmt.Errorf("Error deleting old principal payments: %v", err)
+	}
+	for _, principalPayment := range plan.PrincipalPayments {
+		_, err := r.queries.CreatePrincipalPayment(ctx, toPrincipalPaymentInsertParams(principalPayment, existingPlan.ID))
+		if err != nil {
+			return domain.LoanPaymentPlan{}, fmt.Errorf("Failed to save principal payment to database: %v", err)
+		}
+	}
+
+	costOfCredit, err := decimal.NewFromString(paymentPlan.CostOfCredit)
+	if err != nil {
+		return domain.LoanPaymentPlan{}, fmt.Errorf("corrupted cost of credit data for loan payment plan: %v", err)
+	}
+
+	return domain.LoanPaymentPlan{
+		ID:                  paymentPlan.ID.Bytes,
+		Name:                paymentPlan.Name,
+		DurationMonths:      int(paymentPlan.DurationMonths),
+		TotalExpenditure:    decimal.NewFromInt32(paymentPlan.TotalExpenditure),
+		TotalPaid:           decimal.NewFromInt32(paymentPlan.TotalPaid),
+		CostOfCreditPercent: costOfCredit,
+		Plan:                plan.Plan,
+		PrincipalPayments:   plan.PrincipalPayments,
+	}, nil
+}
+
+func (r *LoansRepo) UpdatePaymentPlanName(ctx context.Context, loanID uuid.UUID, paymentPlanID uuid.UUID, userID uuid.UUID, name string) (domain.LoanPaymentPlan, error) {
+	existing, err := r.GetPaymentPlanByID(ctx, loanID, paymentPlanID, userID)
+	if err != nil {
+		return domain.LoanPaymentPlan{}, err
+	}
+
+	existing.Name = name
+	paymentPlan, err := r.queries.UpdatePaymentPlan(ctx, toPaymentPlanUpdateParams(existing, pgtype.UUID{
+		Bytes: paymentPlanID,
+		Valid: true,
+	}))
+	if err != nil {
+		return domain.LoanPaymentPlan{}, fmt.Errorf("Failed to update payment plan name on database: %v", err)
+	}
+
+	existing.Name = paymentPlan.Name
+	return existing, nil
+}
+
 func (r *LoansRepo) GetLoanByID(ctx context.Context, loanID uuid.UUID, userID uuid.UUID) (domain.Loan, error) {
 	loanQueryResult, err := r.queries.GetLoan(ctx, toLoanGetParams(loanID, userID))
 	if err != nil {

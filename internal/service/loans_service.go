@@ -29,6 +29,8 @@ type LoansRepository interface {
 	GetLoanByID(context.Context, uuid.UUID, uuid.UUID) (domain.Loan, error)
 	GetPaymentPlanByID(context.Context, uuid.UUID, uuid.UUID, uuid.UUID) (domain.LoanPaymentPlan, error)
 	CreatePaymentPlanForLoan(context.Context, uuid.UUID, uuid.UUID, domain.LoanPaymentPlan) (domain.LoanPaymentPlan, error)
+	UpdatePaymentPlanForLoan(context.Context, uuid.UUID, uuid.UUID, domain.LoanPaymentPlan) (domain.LoanPaymentPlan, error)
+	UpdatePaymentPlanName(context.Context, uuid.UUID, uuid.UUID, uuid.UUID, string) (domain.LoanPaymentPlan, error)
 	GetLoanInitialData(context.Context, uuid.UUID, uuid.UUID) (domain.UpdateLoanData, error)
 	UpdateLoan(context.Context, domain.Loan) (db.Loan, error)
 	DeleteLoan(context.Context, uuid.UUID, uuid.UUID) error
@@ -140,6 +142,54 @@ func (s *LoansService) CreatePaymentPlan(ctx context.Context, input domain.Creat
 		return domain.LoanPaymentPlan{}, err
 	}
 	return created, nil
+}
+
+func (s *LoansService) UpdatePaymentPlan(ctx context.Context, input domain.UpdatePaymentPlanInput) (domain.LoanPaymentPlan, error) {
+	if input.Name == nil && input.PrincipalPayments == nil {
+		return domain.LoanPaymentPlan{}, LoanInputError{Message: "empty update request"}
+	}
+
+	existing, err := s.loansRepo.GetPaymentPlanByID(ctx, input.LoanID, input.PaymentPlanID, input.UserID)
+	if err != nil {
+		return domain.LoanPaymentPlan{}, fmt.Errorf("Payment plan not found.")
+	}
+
+	if input.PrincipalPayments == nil {
+		return s.loansRepo.UpdatePaymentPlanName(ctx, input.LoanID, input.PaymentPlanID, input.UserID, *input.Name)
+	}
+
+	planName := existing.Name
+	if input.Name != nil {
+		planName = *input.Name
+	}
+
+	originalData, err := s.loansRepo.GetLoanInitialData(ctx, input.LoanID, input.UserID)
+	if err != nil {
+		return domain.LoanPaymentPlan{}, fmt.Errorf("Loan not found.")
+	}
+
+	loan, err := initializeLoan(originalData.LoanData, input.UserID, originalData.Name)
+	if err != nil {
+		return domain.LoanPaymentPlan{}, err
+	}
+
+	paymentPlan := &domain.LoanPaymentPlan{
+		ID:                input.PaymentPlanID,
+		Name:              planName,
+		PrincipalPayments: *input.PrincipalPayments,
+	}
+
+	loan, err = calculatePaymentPlan(loan, paymentPlan)
+	if err != nil {
+		return domain.LoanPaymentPlan{}, fmt.Errorf("Error calculating payment plan: %v", err)
+	}
+	loan.DefaultPaymentPlan.ID = input.PaymentPlanID
+
+	updated, err := s.loansRepo.UpdatePaymentPlanForLoan(ctx, input.LoanID, input.UserID, *loan.DefaultPaymentPlan)
+	if err != nil {
+		return domain.LoanPaymentPlan{}, err
+	}
+	return updated, nil
 }
 
 func (s *LoansService) UpdateLoan(ctx context.Context, input domain.UpdateLoanInput) (domain.Loan, error) {

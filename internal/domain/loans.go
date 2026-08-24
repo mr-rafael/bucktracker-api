@@ -49,6 +49,14 @@ type CreatePaymentPlanInput struct {
 	PrincipalPayments []PrincipalPayment
 }
 
+type UpdatePaymentPlanInput struct {
+	LoanID            uuid.UUID
+	PaymentPlanID     uuid.UUID
+	UserID            uuid.UUID
+	Name              *string
+	PrincipalPayments *[]PrincipalPayment
+}
+
 type Loan struct {
 	ID                  uuid.UUID
 	UserID              uuid.UUID
