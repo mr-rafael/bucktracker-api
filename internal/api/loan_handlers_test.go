@@ -722,3 +722,85 @@ func TestDeleteLoanUnauthorized(t *testing.T) {
 
 	require.Equal(t, http.StatusUnauthorized, rr.Code)
 }
+
+func TestDeletePaymentPlan(t *testing.T) {
+	mockUserID, _ := uuid.NewRandom()
+	mockLoanID, _ := uuid.NewRandom()
+	mockPlanID, _ := uuid.NewRandom()
+
+	mockLoansRepo := &service.MockLoansRepo{
+		DeletePaymentPlanFunc: func(ctx context.Context, loanID uuid.UUID, paymentPlanID uuid.UUID, userID uuid.UUID) error {
+			require.Equal(t, mockLoanID, loanID)
+			require.Equal(t, mockPlanID, paymentPlanID)
+			require.Equal(t, mockUserID, userID)
+			return nil
+		},
+	}
+	service := service.NewLoansService(mockLoansRepo)
+	handler := NewLoanHandler(service)
+
+	req := httptest.NewRequest(
+		http.MethodDelete,
+		fmt.Sprintf("/app/loans/%v/payment-plans/%v", mockLoanID.String(), mockPlanID.String()),
+		nil,
+	)
+	req.SetPathValue("loanId", mockLoanID.String())
+	req.SetPathValue("paymentPlanId", mockPlanID.String())
+	rr := httptest.NewRecorder()
+
+	ctx := context.WithValue(req.Context(), userIDKey, mockUserID.String())
+	handler.HandleDeletePaymentPlan(rr, req.WithContext(ctx))
+
+	require.Equal(t, http.StatusNoContent, rr.Code)
+	require.Empty(t, rr.Body.String())
+}
+
+func TestDeletePaymentPlanUnauthorized(t *testing.T) {
+	mockLoanID, _ := uuid.NewRandom()
+	mockPlanID, _ := uuid.NewRandom()
+
+	mockLoansRepo := &service.MockLoansRepo{}
+	service := service.NewLoansService(mockLoansRepo)
+	handler := NewLoanHandler(service)
+
+	req := httptest.NewRequest(
+		http.MethodDelete,
+		fmt.Sprintf("/app/loans/%v/payment-plans/%v", mockLoanID.String(), mockPlanID.String()),
+		nil,
+	)
+	req.SetPathValue("loanId", mockLoanID.String())
+	req.SetPathValue("paymentPlanId", mockPlanID.String())
+	rr := httptest.NewRecorder()
+
+	handler.HandleDeletePaymentPlan(rr, req)
+
+	require.Equal(t, http.StatusUnauthorized, rr.Code)
+}
+
+func TestDeletePaymentPlanNotFound(t *testing.T) {
+	mockUserID, _ := uuid.NewRandom()
+	mockLoanID, _ := uuid.NewRandom()
+	mockPlanID, _ := uuid.NewRandom()
+
+	mockLoansRepo := &service.MockLoansRepo{
+		DeletePaymentPlanFunc: func(ctx context.Context, loanID uuid.UUID, paymentPlanID uuid.UUID, userID uuid.UUID) error {
+			return fmt.Errorf("Not found.")
+		},
+	}
+	service := service.NewLoansService(mockLoansRepo)
+	handler := NewLoanHandler(service)
+
+	req := httptest.NewRequest(
+		http.MethodDelete,
+		fmt.Sprintf("/app/loans/%v/payment-plans/%v", mockLoanID.String(), mockPlanID.String()),
+		nil,
+	)
+	req.SetPathValue("loanId", mockLoanID.String())
+	req.SetPathValue("paymentPlanId", mockPlanID.String())
+	rr := httptest.NewRecorder()
+
+	ctx := context.WithValue(req.Context(), userIDKey, mockUserID.String())
+	handler.HandleDeletePaymentPlan(rr, req.WithContext(ctx))
+
+	require.Equal(t, http.StatusNotFound, rr.Code)
+}

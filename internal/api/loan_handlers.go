@@ -322,6 +322,40 @@ func (handler *LoanHandler) HandleDeleteLoan(writer http.ResponseWriter, request
 	err = handler.loanService.DeleteLoan(context.Background(), planUUID, userUUID)
 	if err != nil {
 		respondWithErrorCode(writer, fmt.Sprintf("failed attempt to delete loan %v by user %v", planID, userID), http.StatusNotFound)
+		return
+	}
+	respondWithCode(writer, http.StatusNoContent)
+}
+
+func (handler *LoanHandler) HandleDeletePaymentPlan(writer http.ResponseWriter, request *http.Request) {
+	userID, ok := request.Context().Value(userIDKey).(string)
+	if !ok {
+		respondWithErrorCode(writer, "failed to get user ID from context", http.StatusUnauthorized)
+		return
+	}
+	loanID := request.PathValue("loanId")
+	paymentPlanID := request.PathValue("paymentPlanId")
+
+	userUUID, err := uuid.Parse(userID)
+	if err != nil {
+		respondWithErrorCode(writer, "failed to get user ID from context", http.StatusUnauthorized)
+		return
+	}
+	loanUUID, err := uuid.Parse(loanID)
+	if err != nil {
+		respondWithErrorCode(writer, "invalid loan ID in URL", http.StatusUnauthorized)
+		return
+	}
+	paymentPlanUUID, err := uuid.Parse(paymentPlanID)
+	if err != nil {
+		respondWithErrorCode(writer, "invalid payment plan ID in URL", http.StatusUnauthorized)
+		return
+	}
+
+	err = handler.loanService.DeletePaymentPlan(context.Background(), loanUUID, paymentPlanUUID, userUUID)
+	if err != nil {
+		respondWithErrorCode(writer, fmt.Sprintf("failed attempt to delete payment plan %v for loan %v by user %v", paymentPlanID, loanID, userID), http.StatusNotFound)
+		return
 	}
 	respondWithCode(writer, http.StatusNoContent)
 }

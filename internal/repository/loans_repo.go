@@ -412,6 +412,53 @@ func (r *LoansRepo) DeleteLoan(ctx context.Context, loanID uuid.UUID, userID uui
 	return nil
 }
 
+func (r *LoansRepo) DeletePaymentPlan(ctx context.Context, loanID uuid.UUID, paymentPlanID uuid.UUID, userID uuid.UUID) error {
+	existingLoan, err := r.queries.GetLoan(ctx, toLoanGetParams(loanID, userID))
+	if err != nil {
+		return fmt.Errorf("Not found.")
+	}
+
+	existingPlan, err := r.queries.GetPaymentPlanByIDAndLoanID(ctx, db.GetPaymentPlanByIDAndLoanIDParams{
+		ID: pgtype.UUID{
+			Bytes: paymentPlanID,
+			Valid: true,
+		},
+		LoanID: pgtype.UUID{
+			Bytes: loanID,
+			Valid: true,
+		},
+	})
+	if err != nil {
+		return fmt.Errorf("Not found.")
+	}
+
+	// Clear the circular FK if this plan is the loan's default before deleting.
+	if existingLoan.DefaultPaymentPlan.Valid && existingLoan.DefaultPaymentPlan.Bytes == existingPlan.ID.Bytes {
+		clearParams := db.UpdateLoanParams{
+			ID:                  existingLoan.ID,
+			UserID:              existingLoan.UserID,
+			Name:                existingLoan.Name,
+			StartingPrincipal:   existingLoan.StartingPrincipal,
+			YearlyInterestRate:  existingLoan.YearlyInterestRate,
+			MonthlyPayment:      existingLoan.MonthlyPayment,
+			EscrowPayment:       existingLoan.EscrowPayment,
+			StartDate:           existingLoan.StartDate,
+			MonthlyInterestRate: existingLoan.MonthlyInterestRate,
+			DefaultPaymentPlan:  pgtype.UUID{Valid: false},
+		}
+		_, err = r.queries.UpdateLoan(ctx, clearParams)
+		if err != nil {
+			return fmt.Errorf("Failed to clear default payment plan before delete: %v", err)
+		}
+	}
+
+	err = r.queries.DeletePaymentPlan(ctx, existingPlan.ID)
+	if err != nil {
+		return fmt.Errorf("Not found.")
+	}
+	return nil
+}
+
 func toLoanInsertQueryParams(loan domain.Loan) (db.CreateLoanParams, error) {
 	startDate, err := time.Parse("2006-01-02", loan.OriginalData.StartDate)
 	if err != nil {

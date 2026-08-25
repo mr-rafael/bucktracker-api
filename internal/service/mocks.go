@@ -34,6 +34,7 @@ type MockLoansRepo struct {
 	GetLoanInitialDataFunc        func(context.Context, uuid.UUID, uuid.UUID) (domain.UpdateLoanData, error)
 	UpdateLoanFunc                func(context.Context, domain.Loan) (db.Loan, error)
 	DeleteLoanFunc                func(ctx context.Context, loanID uuid.UUID, userID uuid.UUID) error
+	DeletePaymentPlanFunc         func(ctx context.Context, loanID uuid.UUID, paymentPlanID uuid.UUID, userID uuid.UUID) error
 }
 
 type MockSavingsRepo struct {
@@ -160,6 +161,13 @@ func (m *MockLoansRepo) UpdateLoan(ctx context.Context, loan domain.Loan) (db.Lo
 func (m *MockLoansRepo) DeleteLoan(ctx context.Context, loanID uuid.UUID, userID uuid.UUID) error {
 	if m.DeleteLoanFunc != nil {
 		return m.DeleteLoanFunc(ctx, loanID, userID)
+	}
+	return nil
+}
+
+func (m *MockLoansRepo) DeletePaymentPlan(ctx context.Context, loanID uuid.UUID, paymentPlanID uuid.UUID, userID uuid.UUID) error {
+	if m.DeletePaymentPlanFunc != nil {
+		return m.DeletePaymentPlanFunc(ctx, loanID, paymentPlanID, userID)
 	}
 	return nil
 }

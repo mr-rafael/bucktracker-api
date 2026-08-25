@@ -34,6 +34,7 @@ type LoansRepository interface {
 	GetLoanInitialData(context.Context, uuid.UUID, uuid.UUID) (domain.UpdateLoanData, error)
 	UpdateLoan(context.Context, domain.Loan) (db.Loan, error)
 	DeleteLoan(context.Context, uuid.UUID, uuid.UUID) error
+	DeletePaymentPlan(context.Context, uuid.UUID, uuid.UUID, uuid.UUID) error
 }
 
 func NewLoansService(repo LoansRepository) *LoansService {
@@ -233,6 +234,10 @@ func (s *LoansService) UpdateLoan(ctx context.Context, input domain.UpdateLoanIn
 
 func (s *LoansService) DeleteLoan(ctx context.Context, loanID uuid.UUID, userID uuid.UUID) error {
 	return s.loansRepo.DeleteLoan(ctx, loanID, userID)
+}
+
+func (s *LoansService) DeletePaymentPlan(ctx context.Context, loanID uuid.UUID, paymentPlanID uuid.UUID, userID uuid.UUID) error {
+	return s.loansRepo.DeletePaymentPlan(ctx, loanID, paymentPlanID, userID)
 }
 
 func calculatePaymentPlan(loan domain.Loan, paymentPlan *domain.LoanPaymentPlan) (domain.Loan, error) {
