@@ -294,6 +294,7 @@ func TestUpdateLoan(t *testing.T) {
 	updatedPrincipal := 15000
 	originalInterest := "5"
 	updatedInterest := "4"
+	mockPlanID, _ := uuid.NewRandom()
 	mockLoansRepo := &MockLoansRepo{
 		GetLoanInitialDataFunc: func(ctx context.Context, planID uuid.UUID, userID uuid.UUID) (domain.UpdateLoanData, error) {
 			return domain.UpdateLoanData{
@@ -313,9 +314,25 @@ func TestUpdateLoan(t *testing.T) {
 				ID:   loanID,
 				Name: originalName,
 				DefaultPaymentPlan: &domain.LoanPaymentPlan{
+					ID:   mockPlanID,
 					Name: "Default Payment Plan",
 				},
+				PaymentPlans: []domain.LoanPaymentPlan{
+					{
+						ID:   mockPlanID,
+						Name: "Default Payment Plan",
+					},
+				},
 			}, nil
+		},
+		GetPaymentPlanByIDFunc: func(ctx context.Context, loanID uuid.UUID, paymentPlanID uuid.UUID, userID uuid.UUID) (domain.LoanPaymentPlan, error) {
+			return domain.LoanPaymentPlan{
+				ID:   paymentPlanID,
+				Name: "Default Payment Plan",
+			}, nil
+		},
+		UpdatePaymentPlanForLoanFunc: func(ctx context.Context, loanID uuid.UUID, userID uuid.UUID, plan domain.LoanPaymentPlan) (domain.LoanPaymentPlan, error) {
+			return plan, nil
 		},
 		UpdateLoanFunc: func(ctx context.Context, loan domain.Loan) (db.Loan, error) {
 			return db.Loan{
@@ -326,6 +343,10 @@ func TestUpdateLoan(t *testing.T) {
 				Name:               loan.Name,
 				StartingPrincipal:  int32(loan.OriginalData.StartingPrincipal),
 				YearlyInterestRate: loan.OriginalData.YearlyInterestRate,
+				DefaultPaymentPlan: pgtype.UUID{
+					Bytes: mockPlanID,
+					Valid: true,
+				},
 			}, nil
 		},
 	}

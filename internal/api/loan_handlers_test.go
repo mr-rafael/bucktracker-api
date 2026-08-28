@@ -588,6 +588,9 @@ func TestUpdatePaymentPlanUnauthorized(t *testing.T) {
 func TestUpdateLoan(t *testing.T) {
 	mockUserID, _ := uuid.NewRandom()
 	mockLoanID, _ := uuid.NewRandom()
+	mockPlanID, _ := uuid.NewRandom()
+	mockExtraPlanID, _ := uuid.NewRandom()
+	updatedPlans := 0
 
 	mockLoansRepo := &service.MockLoansRepo{
 		GetLoanInitialDataFunc: func(ctx context.Context, planID uuid.UUID, userID uuid.UUID) (domain.UpdateLoanData, error) {
@@ -595,39 +598,65 @@ func TestUpdateLoan(t *testing.T) {
 				ID:   planID,
 				Name: "originalName",
 				LoanData: domain.LoansInput{
-					StartingPrincipal:  10000,
+					StartingPrincipal:  10000000,
 					YearlyInterestRate: "5",
-					MonthlyPayment:     1000,
-					EscrowPayment:      100,
+					MonthlyPayment:     900076,
+					EscrowPayment:      10000,
 					StartDate:          "1970-01-01",
 				},
 			}, nil
 		},
 		GetLoanByIDFunc: func(ctx context.Context, loanID uuid.UUID, userID uuid.UUID) (domain.Loan, error) {
-			planID, _ := uuid.NewRandom()
 			return domain.Loan{
 				ID:   loanID,
 				Name: "originalName",
 				OriginalData: domain.LoansInput{
-					StartingPrincipal:  10000,
+					StartingPrincipal:  10000000,
 					YearlyInterestRate: "5",
-					MonthlyPayment:     1000,
-					EscrowPayment:      100,
+					MonthlyPayment:     900076,
+					EscrowPayment:      10000,
 					StartDate:          "1970-01-01",
 				},
 				DefaultPaymentPlan: &domain.LoanPaymentPlan{
-					ID:             planID,
+					ID:             mockPlanID,
 					Name:           "Default Payment Plan",
 					DurationMonths: 12,
 				},
 				PaymentPlans: []domain.LoanPaymentPlan{
 					{
-						ID:             planID,
+						ID:             mockPlanID,
 						Name:           "Default Payment Plan",
 						DurationMonths: 12,
 					},
+					{
+						ID:             mockExtraPlanID,
+						Name:           "Extra Principal Plan",
+						DurationMonths: 10,
+					},
 				},
 			}, nil
+		},
+		GetPaymentPlanByIDFunc: func(ctx context.Context, loanID uuid.UUID, paymentPlanID uuid.UUID, userID uuid.UUID) (domain.LoanPaymentPlan, error) {
+			if paymentPlanID == mockExtraPlanID {
+				return domain.LoanPaymentPlan{
+					ID:   mockExtraPlanID,
+					Name: "Extra Principal Plan",
+					PrincipalPayments: []domain.PrincipalPayment{
+						{
+							AmountPaid: decimal.NewFromInt(500000),
+							Date:       time.Date(1970, 2, 1, 0, 0, 0, 0, time.UTC),
+						},
+					},
+				}, nil
+			}
+			return domain.LoanPaymentPlan{
+				ID:   mockPlanID,
+				Name: "Default Payment Plan",
+			}, nil
+		},
+		UpdatePaymentPlanForLoanFunc: func(ctx context.Context, loanID uuid.UUID, userID uuid.UUID, plan domain.LoanPaymentPlan) (domain.LoanPaymentPlan, error) {
+			updatedPlans++
+			return plan, nil
 		},
 		UpdateLoanFunc: func(ctx context.Context, loan domain.Loan) (db.Loan, error) {
 			return db.Loan{
@@ -638,6 +667,10 @@ func TestUpdateLoan(t *testing.T) {
 				Name:               loan.Name,
 				StartingPrincipal:  int32(loan.OriginalData.StartingPrincipal),
 				YearlyInterestRate: loan.OriginalData.YearlyInterestRate,
+				DefaultPaymentPlan: pgtype.UUID{
+					Bytes: mockPlanID,
+					Valid: true,
+				},
 			}, nil
 		},
 	}
@@ -648,7 +681,7 @@ func TestUpdateLoan(t *testing.T) {
 		http.MethodPatch,
 		"/app/loans",
 		strings.NewReader(`{
-			"interestRate": "5"
+			"yearlyInterestRate": "4"
 		}`),
 	)
 	req.SetPathValue("id", mockLoanID.String())
@@ -659,6 +692,7 @@ func TestUpdateLoan(t *testing.T) {
 	handler.HandleUpdateLoan(rr, req.WithContext(ctx))
 
 	require.Equal(t, http.StatusOK, rr.Code)
+	require.Equal(t, 2, updatedPlans)
 }
 
 func TestUpdateLoanUnauthorized(t *testing.T) {

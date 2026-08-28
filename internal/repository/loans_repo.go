@@ -324,10 +324,6 @@ func (r *LoansRepo) GetLoanInitialData(ctx context.Context, loanID uuid.UUID, us
 }
 
 func (r *LoansRepo) UpdateLoan(ctx context.Context, loan domain.Loan) (db.Loan, error) {
-	if loan.DefaultPaymentPlan == nil {
-		return db.Loan{}, fmt.Errorf("loan has no default payment plan")
-	}
-
 	existingLoan, err := r.queries.GetLoan(ctx, toLoanGetParams(loan.ID, loan.UserID))
 	if err != nil {
 		return db.Loan{}, fmt.Errorf("Failed to fetch loan for update: %v", err)
@@ -344,35 +340,6 @@ func (r *LoansRepo) UpdateLoan(ctx context.Context, loan domain.Loan) (db.Loan, 
 	queryResult, err := r.queries.UpdateLoan(ctx, loanParams)
 	if err != nil {
 		return db.Loan{}, fmt.Errorf("Failed to update loan on database: %v", err)
-	}
-
-	_, err = r.queries.UpdatePaymentPlan(ctx, toPaymentPlanUpdateParams(*loan.DefaultPaymentPlan, existingLoan.DefaultPaymentPlan))
-	if err != nil {
-		return db.Loan{}, fmt.Errorf("Failed to update payment plan on database: %v", err)
-	}
-
-	err = r.queries.DeleteLoanStatesByPaymentPlanID(ctx, existingLoan.DefaultPaymentPlan)
-	if err != nil {
-		return db.Loan{}, fmt.Errorf("Error deleting old payment plan data: %v", err)
-	}
-
-	for _, status := range loan.DefaultPaymentPlan.Plan {
-		_, err := r.queries.CreateLoanState(ctx, toLoanStateInsertParams(status, existingLoan.DefaultPaymentPlan))
-		if err != nil {
-			return db.Loan{}, fmt.Errorf("Failed to save loan status to database: %v", err)
-		}
-	}
-
-	err = r.queries.DeletePrincipalPaymentsByPaymentPlanID(ctx, existingLoan.DefaultPaymentPlan)
-	if err != nil {
-		return db.Loan{}, fmt.Errorf("Error deleting old principal payments: %v", err)
-	}
-
-	for _, principalPayment := range loan.DefaultPaymentPlan.PrincipalPayments {
-		_, err := r.queries.CreatePrincipalPayment(ctx, toPrincipalPaymentInsertParams(principalPayment, existingLoan.DefaultPaymentPlan))
-		if err != nil {
-			return db.Loan{}, fmt.Errorf("Failed to save principal payment to database: %v", err)
-		}
 	}
 
 	return queryResult, nil

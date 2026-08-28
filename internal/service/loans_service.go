@@ -209,16 +209,42 @@ func (s *LoansService) UpdateLoan(ctx context.Context, input domain.UpdateLoanIn
 	if err != nil {
 		return domain.Loan{}, err
 	}
-	if existingLoan.DefaultPaymentPlan != nil {
-		loan.DefaultPaymentPlan = &domain.LoanPaymentPlan{
-			Name: existingLoan.DefaultPaymentPlan.Name,
-		}
-	}
-	loan, err = calculatePaymentPlan(loan, nil)
-	if err != nil {
-		return domain.Loan{}, fmt.Errorf("Error calculating payment plan: %v", err)
-	}
 	loan.ID = input.ID
+
+	if loanTermsUpdated(input) {
+		for _, planID := range paymentPlanIDs(existingLoan) {
+			existingPlan, err := s.loansRepo.GetPaymentPlanByID(ctx, input.ID, planID, input.UserID)
+			if err != nil {
+				return domain.Loan{}, fmt.Errorf("Payment plan not found.")
+			}
+
+			calcLoan, err := initializeLoan(patchedData.LoanData, input.UserID, patchedData.Name)
+			if err != nil {
+				return domain.Loan{}, err
+			}
+			paymentPlan := &domain.LoanPaymentPlan{
+				ID:                existingPlan.ID,
+				Name:              existingPlan.Name,
+				PrincipalPayments: existingPlan.PrincipalPayments,
+			}
+			calcLoan, err = calculatePaymentPlan(calcLoan, paymentPlan)
+			if err != nil {
+				return domain.Loan{}, fmt.Errorf("Error calculating payment plan: %v", err)
+			}
+			calcLoan.DefaultPaymentPlan.ID = existingPlan.ID
+
+			updatedPlan, err := s.loansRepo.UpdatePaymentPlanForLoan(ctx, input.ID, input.UserID, *calcLoan.DefaultPaymentPlan)
+			if err != nil {
+				return domain.Loan{}, err
+			}
+			if existingLoan.DefaultPaymentPlan != nil && existingPlan.ID == existingLoan.DefaultPaymentPlan.ID {
+				loan.DefaultPaymentPlan = &updatedPlan
+			}
+		}
+	} else if existingLoan.DefaultPaymentPlan != nil {
+		loan.DefaultPaymentPlan = existingLoan.DefaultPaymentPlan
+	}
+
 	result, err := s.loansRepo.UpdateLoan(ctx, loan)
 	if err != nil {
 		return domain.Loan{}, err
@@ -230,6 +256,30 @@ func (s *LoansService) UpdateLoan(ctx context.Context, input domain.UpdateLoanIn
 	}
 
 	return loan, nil
+}
+
+func loanTermsUpdated(input domain.UpdateLoanInput) bool {
+	return input.StartingPrincipal != nil ||
+		input.YearlyInterestRate != nil ||
+		input.MonthlyPayment != nil ||
+		input.EscrowPayment != nil ||
+		input.StartDate != nil
+}
+
+func paymentPlanIDs(loan domain.Loan) []uuid.UUID {
+	ids := make([]uuid.UUID, 0, len(loan.PaymentPlans))
+	seen := map[uuid.UUID]struct{}{}
+	for _, plan := range loan.PaymentPlans {
+		if _, ok := seen[plan.ID]; ok {
+			continue
+		}
+		seen[plan.ID] = struct{}{}
+		ids = append(ids, plan.ID)
+	}
+	if len(ids) == 0 && loan.DefaultPaymentPlan != nil && loan.DefaultPaymentPlan.ID != uuid.Nil {
+		ids = append(ids, loan.DefaultPaymentPlan.ID)
+	}
+	return ids
 }
 
 func (s *LoansService) DeleteLoan(ctx context.Context, loanID uuid.UUID, userID uuid.UUID) error {
