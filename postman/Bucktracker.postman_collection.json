@@ -1,0 +1,971 @@
+{
+  "info": {
+    "_postman_id": "c2918d2d-45f9-4716-b829-8e92c1966d85",
+    "name": "Finance Calculator",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "2430640"
+  },
+  "item": [
+    {
+      "name": "Admin",
+      "item": [
+        {
+          "name": "HealthZ",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{app_base_url}}/api/healthz",
+              "host": [
+                "{{app_base_url}}"
+              ],
+              "path": [
+                "api",
+                "healthz"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Savings",
+      "item": [
+        {
+          "name": "Calculate Savings",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  ""
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n\t\"startingCapital\": 10000000,\r\n\t\"yearlyInterestRate\": \"5\",\r\n\t\"monthlyContribution\": 10000,\r\n\t\"durationYears\": 1,\r\n\t\"startDate\": \"2026-02-01\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{app_base_url}}/app/savings/calculate",
+              "host": [
+                "{{app_base_url}}"
+              ],
+              "path": [
+                "app",
+                "savings",
+                "calculate"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Save Savings",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  ""
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"name\": \"test\",\r\n\t\"startingCapital\": 700000,\r\n\t\"yearlyInterestRate\": \"4.75\",\r\n\t\"monthlyContribution\": 15000,\r\n\t\"durationYears\": 1,\r\n\t\"startDate\": \"2026-02-01\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{app_base_url}}/app/savings/save",
+              "host": [
+                "{{app_base_url}}"
+              ],
+              "path": [
+                "app",
+                "savings",
+                "save"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "List Savings",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  ""
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{app_base_url}}/app/savings/list",
+              "host": [
+                "{{app_base_url}}"
+              ],
+              "path": [
+                "app",
+                "savings",
+                "list"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Savings Plan",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  ""
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{app_base_url}}/app/savings/a5b140fd-583c-4edb-8668-e7ee986d2a38",
+              "host": [
+                "{{app_base_url}}"
+              ],
+              "path": [
+                "app",
+                "savings",
+                "a5b140fd-583c-4edb-8668-e7ee986d2a38"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Savings",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  ""
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n\t\"yearlyInterestRate\": \"4.2\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{app_base_url}}/app/savings/bea4b58a-86a0-4eee-8380-37929b599216",
+              "host": [
+                "{{app_base_url}}"
+              ],
+              "path": [
+                "app",
+                "savings",
+                "bea4b58a-86a0-4eee-8380-37929b599216"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Savings Plan",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  ""
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{app_base_url}}/app/savings/ce9d0114-4274-42f4-8965-610bde7c6f99",
+              "host": [
+                "{{app_base_url}}"
+              ],
+              "path": [
+                "app",
+                "savings",
+                "ce9d0114-4274-42f4-8965-610bde7c6f99"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Calculate Savings APR",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n\t\"startingCapital\": 700000,\r\n\t\"yearlyInterestRate\": \"3\",\r\n    \"interestRateType\": \"APR\",\r\n\t\"monthlyContribution\": 15000,\r\n\t\"durationYears\": 1,\r\n\t\"startDate\": \"2026-02-01\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{app_base_url}}/app/savings/calculate",
+              "host": [
+                "{{app_base_url}}"
+              ],
+              "path": [
+                "app",
+                "savings",
+                "calculate"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Calculate Savings Taxed",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n\t\"startingCapital\": 700000,\r\n\t\"yearlyInterestRate\": \"4.75\",\r\n\t\"monthlyContribution\": 15000,\r\n\t\"durationYears\": 1,\r\n    \"taxRate\": \"5\",\r\n\t\"startDate\": \"2026-02-01\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{app_base_url}}/app/savings/calculate",
+              "host": [
+                "{{app_base_url}}"
+              ],
+              "path": [
+                "app",
+                "savings",
+                "calculate"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Calculate Savings Taxed with Inflation",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n\t\"startingCapital\": 700000,\r\n\t\"yearlyInterestRate\": \"4.75\",\r\n\t\"monthlyContribution\": 15000,\r\n\t\"durationYears\": 1,\r\n    \"taxRate\": \"5\",\r\n    \"yearlyInflationRate\": \"6\",\r\n\t\"startDate\": \"2026-02-01\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{app_base_url}}/app/savings/calculate",
+              "host": [
+                "{{app_base_url}}"
+              ],
+              "path": [
+                "app",
+                "savings",
+                "calculate"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Save Savings Info",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"name\": \"test\",\r\n\t\"startingCapital\": 700000,\r\n\t\"yearlyInterestRate\": \"4.75\",\r\n\t\"monthlyContribution\": 15000,\r\n\t\"durationYears\": 1,\r\n    \"taxRate\": \"5\",\r\n    \"yearlyInflationRate\": \"6\",\r\n\t\"startDate\": \"2026-02-01\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{app_base_url}}/app/savings/save",
+              "host": [
+                "{{app_base_url}}"
+              ],
+              "path": [
+                "app",
+                "savings",
+                "save"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Loans",
+      "item": [
+        {
+          "name": "Loans",
+          "item": [
+            {
+              "name": "Calculate Loan",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{jwt_token}}",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n\t\"startingPrincipal\": 10000000,\r\n\t\"yearlyInterestRate\": \"5\",\r\n\t\"monthlyPayment\": 750000,\r\n\t\"escrowPayment\": 10000,\r\n\t\"startDate\": \"1970-01-01\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{app_base_url}}/app/loans/calculate",
+                  "host": [
+                    "{{app_base_url}}"
+                  ],
+                  "path": [
+                    "app",
+                    "loans",
+                    "calculate"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Save Loan",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{jwt_token}}",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"name\": \"Préstamo BI\",\r\n\t\"startingPrincipal\": 53070000,\r\n\t\"yearlyInterestRate\": \"7.26\",\r\n\t\"monthlyPayment\": 419772,\r\n\t\"escrowPayment\": 57382,\r\n\t\"startDate\": \"2025-01-01\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{app_base_url}}/app/loans/save",
+                  "host": [
+                    "{{app_base_url}}"
+                  ],
+                  "path": [
+                    "app",
+                    "loans",
+                    "save"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Get Loan",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{jwt_token}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{app_base_url}}/app/loans/db7dabcc-0aca-487e-8ced-b5408269f899",
+                  "host": [
+                    "{{app_base_url}}"
+                  ],
+                  "path": [
+                    "app",
+                    "loans",
+                    "db7dabcc-0aca-487e-8ced-b5408269f899"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "List Loans",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{jwt_token}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{app_base_url}}/app/loans/list",
+                  "host": [
+                    "{{app_base_url}}"
+                  ],
+                  "path": [
+                    "app",
+                    "loans",
+                    "list"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Delete Loan",
+              "request": {
+                "method": "DELETE",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{jwt_token}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{app_base_url}}/app/loans/ef375465-08ad-4947-9541-e192367797f9",
+                  "host": [
+                    "{{app_base_url}}"
+                  ],
+                  "path": [
+                    "app",
+                    "loans",
+                    "ef375465-08ad-4947-9541-e192367797f9"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Update Loan",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{jwt_token}}",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n\t\"yearlyInterestRate\": \"5.5\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{app_base_url}}/app/loans/1ab07a82-7a5c-4d20-a5a8-f40fb4c6dd96",
+                  "host": [
+                    "{{app_base_url}}"
+                  ],
+                  "path": [
+                    "app",
+                    "loans",
+                    "1ab07a82-7a5c-4d20-a5a8-f40fb4c6dd96"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Loan Payment Plans",
+          "item": [
+            {
+              "name": "Create Loan Payment Plan",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{jwt_token}}",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"name\": \"50k plan\",\r\n  \"principalPayments\": [\r\n    { \"date\": \"2026-01-01\", \"amount\": 5000000 }\r\n  ]\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{app_base_url}}/app/loans/1ab07a82-7a5c-4d20-a5a8-f40fb4c6dd96/payment-plans",
+                  "host": [
+                    "{{app_base_url}}"
+                  ],
+                  "path": [
+                    "app",
+                    "loans",
+                    "1ab07a82-7a5c-4d20-a5a8-f40fb4c6dd96",
+                    "payment-plans"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Get Loan Payment Plan",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{jwt_token}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{app_base_url}}/app/loans/db7dabcc-0aca-487e-8ced-b5408269f899/payment-plans/496d8b4a-ae24-4713-9224-1bc6762222fa",
+                  "host": [
+                    "{{app_base_url}}"
+                  ],
+                  "path": [
+                    "app",
+                    "loans",
+                    "db7dabcc-0aca-487e-8ced-b5408269f899",
+                    "payment-plans",
+                    "496d8b4a-ae24-4713-9224-1bc6762222fa"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Rename Loan Payment Plan",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{jwt_token}}",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"name\":\"51k plan\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{app_base_url}}/app/loans/1ab07a82-7a5c-4d20-a5a8-f40fb4c6dd96/payment-plans/b0933679-88e0-4546-9c2d-566348ebf633",
+                  "host": [
+                    "{{app_base_url}}"
+                  ],
+                  "path": [
+                    "app",
+                    "loans",
+                    "1ab07a82-7a5c-4d20-a5a8-f40fb4c6dd96",
+                    "payment-plans",
+                    "b0933679-88e0-4546-9c2d-566348ebf633"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Update Principal Payments",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{jwt_token}}",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"principalPayments\": [\r\n    { \"date\": \"2026-01-01\", \"amount\": 10000000 }\r\n  ]\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{app_base_url}}/app/loans/1ab07a82-7a5c-4d20-a5a8-f40fb4c6dd96/payment-plans/b0933679-88e0-4546-9c2d-566348ebf633",
+                  "host": [
+                    "{{app_base_url}}"
+                  ],
+                  "path": [
+                    "app",
+                    "loans",
+                    "1ab07a82-7a5c-4d20-a5a8-f40fb4c6dd96",
+                    "payment-plans",
+                    "b0933679-88e0-4546-9c2d-566348ebf633"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Update Loan Payment Plan",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{jwt_token}}",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"name\":\"2x 50k plan\",\r\n    \"principalPayments\": [\r\n    { \"date\": \"2026-01-01\", \"amount\": 5000000 },\r\n    { \"date\": \"2026-02-01\", \"amount\": 5000000 }\r\n  ]\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{app_base_url}}/app/loans/1ab07a82-7a5c-4d20-a5a8-f40fb4c6dd96/payment-plans/b0933679-88e0-4546-9c2d-566348ebf633",
+                  "host": [
+                    "{{app_base_url}}"
+                  ],
+                  "path": [
+                    "app",
+                    "loans",
+                    "1ab07a82-7a5c-4d20-a5a8-f40fb4c6dd96",
+                    "payment-plans",
+                    "b0933679-88e0-4546-9c2d-566348ebf633"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Delete Loan Payment Plan",
+              "request": {
+                "method": "DELETE",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{jwt_token}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{app_base_url}}/app/loans/1ab07a82-7a5c-4d20-a5a8-f40fb4c6dd96/payment-plans/dd286834-497a-4aa9-88bd-29a9a1dbbae8",
+                  "host": [
+                    "{{app_base_url}}"
+                  ],
+                  "path": [
+                    "app",
+                    "loans",
+                    "1ab07a82-7a5c-4d20-a5a8-f40fb4c6dd96",
+                    "payment-plans",
+                    "dd286834-497a-4aa9-88bd-29a9a1dbbae8"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Users",
+      "item": [
+        {
+          "name": "Create User",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n\t\"email\":\"rafael.mazariegosr@gmail.com\",\r\n    \"password\":\"password\",\r\n    \"username\":\"Me\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{app_base_url}}/app/users/create",
+              "host": [
+                "{{app_base_url}}"
+              ],
+              "path": [
+                "app",
+                "users",
+                "create"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const jwtTokenEnv = \"jwt_token\";\r",
+                  "const refreshTokenEnv = \"refresh_token\";\r",
+                  "const jwtToken = pm.response.json().access_token;\r",
+                  "const refreshToken = pm.response.headers.get('Set-Cookie');\r",
+                  "\r",
+                  "// verify that we have a token value\r",
+                  "pm.test(\"jwt token value should be present\", function() {\r",
+                  "  pm.expect(jwtToken.length > 0);\r",
+                  "});\r",
+                  "pm.test(\"refresh token value should be present\", function() {\r",
+                  "    pm.expect(refreshToken.length > 0);\r",
+                  "});\r",
+                  "\r",
+                  "// save the new token in our environment variable\r",
+                  "pm.environment.set(jwtTokenEnv, jwtToken);\r",
+                  "pm.environment.set(refreshTokenEnv, refreshToken);\r",
+                  "\r",
+                  "// simple verification that the value was saved as intended\r",
+                  "pm.test(\"JWT Token environment variable should be updated\", function() {\r",
+                  "  const checkToken = pm.environment.get(jwtTokenEnv);\r",
+                  "  pm.expect(checkToken).to.eql(jwtToken);\r",
+                  "});\r",
+                  "pm.test(\"Refresh Token environment variable should be updated\", function() {\r",
+                  "  const checkToken = pm.environment.get(refreshTokenEnv);\r",
+                  "  pm.expect(checkToken).to.eql(refreshToken);\r",
+                  "});"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n\t\"email\":\"rafael.mazariegosr@gmail.com\",\r\n    \"password\":\"password\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{app_base_url}}/app/login",
+              "host": [
+                "{{app_base_url}}"
+              ],
+              "path": [
+                "app",
+                "login"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Refresh",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const jwtTokenEnv = \"jwt_token\";\r",
+                  "const jwtToken = pm.response.json().access_token;\r",
+                  "\r",
+                  "// verify that we have a token value\r",
+                  "pm.test(\"jwt token value should be present\", function() {\r",
+                  "  pm.expect(jwtToken.length > 0);\r",
+                  "});\r",
+                  "\r",
+                  "// save the new token in our environment variable\r",
+                  "pm.environment.set(jwtTokenEnv, jwtToken);\r",
+                  "\r",
+                  "// simple verification that the value was saved as intended\r",
+                  "pm.test(\"JWT Token environment variable should be updated\", function() {\r",
+                  "  const checkToken = pm.environment.get(jwtTokenEnv);\r",
+                  "  pm.expect(checkToken).to.eql(jwtToken);\r",
+                  "});"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": ""
+            },
+            "url": {
+              "raw": "{{app_base_url}}/app/refresh",
+              "host": [
+                "{{app_base_url}}"
+              ],
+              "path": [
+                "app",
+                "refresh"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

@@ -49,7 +49,7 @@ const minMonthlyPaymentCents = "1"
 const maxMonthlyPaymentCents = "100000000000"
 const minEscrowCents = "0"
 const maxEscrowCents = "100000000000"
-const maxPaymentYears = 30
+const maxPaymentYears = 40
 const defaultPaymentPlanName = "Default Payment Plan"
 
 func (s *LoansService) CalculateLoanPaymentPlan(input domain.LoansInput) (domain.Loan, error) {
