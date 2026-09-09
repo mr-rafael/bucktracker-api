@@ -90,7 +90,7 @@ func New() *App {
 	mux.Handle("DELETE /app/loans/{id}", authMW.Handle(http.HandlerFunc(loansHandler.HandleDeleteLoan)))
 
 	return &App{
-		Handler: mux,
+		Handler: api.WithCORS(mux),
 		DB:      pool,
 	}
 }

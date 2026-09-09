@@ -25,7 +25,7 @@ func NewAuthMiddleware(service *service.AuthService) *AuthMiddleware {
 	}
 }
 
-func withCORS(next http.Handler) http.Handler {
+func WithCORS(next http.Handler) http.Handler {
 	allowedOrigin := os.Getenv("ALLOWED_ORIGIN")
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", allowedOrigin)

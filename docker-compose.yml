@@ -16,7 +16,7 @@ services:
       retries: 5
 
   migrate:
-    build: .
+    build: ./backend
     entrypoint: ["goose"]
     command:
       [
@@ -26,13 +26,13 @@ services:
         "up"
       ]
     volumes:
-      - ./internal/db/migrations:/migrations
+      - ./backend/internal/db/migrations:/migrations
     depends_on:
       db:
         condition: service_healthy
 
-  app:
-    build: .
+  backend:
+    build: ./backend
     ports:
       - "8080:8080"
     environment:
@@ -40,10 +40,17 @@ services:
       ACCESS_SECRET: DEVENVIRONMENTSECRET
       REFRESH_SECRET: DEVENVREFRESHSECRET
       ENV: develop
-      ALLOWED_ORIGIN: http://localhost:5173
+      ALLOWED_ORIGIN: http://localhost:3000
     depends_on:
       migrate:
         condition: service_completed_successfully
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
 
 volumes:
   postgres_data:
