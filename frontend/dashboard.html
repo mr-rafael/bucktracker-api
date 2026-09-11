@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="corporate">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dashboard | BuckTracker</title>
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@5" rel="stylesheet" type="text/css" />
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script>
+      if (!sessionStorage.getItem("access_token")) {
+        window.location.replace("/login.html");
+      }
+    </script>
+  </head>
+  <body class="min-h-screen bg-base-200">
+    <div class="flex min-h-screen">
+      <aside class="w-40 shrink-0 border-r border-base-300 bg-base-100 p-3 sm:w-64 sm:p-5">
+        <a href="/" class="mb-8 block text-xl font-bold sm:text-2xl">BuckTracker</a>
+
+        <nav aria-label="Dashboard">
+          <ul class="menu w-full gap-1 p-0">
+            <li>
+              <a href="#loans" data-section="loans">Loans</a>
+            </li>
+            <li>
+              <a href="#savings" data-section="savings">Savings</a>
+            </li>
+          </ul>
+        </nav>
+
+        <a href="/" class="btn btn-ghost btn-sm mt-8 w-full">Log out</a>
+      </aside>
+
+      <main class="flex-1 p-6 sm:p-10">
+        <div class="mx-auto max-w-5xl">
+          <h1 id="section-title" class="text-3xl font-bold sm:text-4xl">Loans</h1>
+        </div>
+      </main>
+    </div>
+
+    <script>
+      const title = document.getElementById("section-title");
+      const navigationLinks = document.querySelectorAll("[data-section]");
+      const validSections = new Set(["loans", "savings"]);
+
+      function showSection() {
+        const requestedSection = window.location.hash.slice(1).toLowerCase();
+        const section = validSections.has(requestedSection) ? requestedSection : "loans";
+
+        title.textContent = section === "loans" ? "Loans" : "Savings";
+
+        navigationLinks.forEach((link) => {
+          const isCurrent = link.dataset.section === section;
+          link.classList.toggle("menu-active", isCurrent);
+
+          if (isCurrent) {
+            link.setAttribute("aria-current", "page");
+          } else {
+            link.removeAttribute("aria-current");
+          }
+        });
+      }
+
+      window.addEventListener("hashchange", showSection);
+      showSection();
+    </script>
+  </body>
+</html>

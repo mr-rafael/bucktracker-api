@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="corporate">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Log in | BuckTracker</title>
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@5" rel="stylesheet" type="text/css" />
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  </head>
+  <body class="flex min-h-screen items-center justify-center bg-base-200 p-6">
+    <main class="card w-full max-w-md bg-base-100 shadow-xl">
+      <div class="card-body gap-5">
+        <div>
+          <p class="mb-1 text-sm font-semibold uppercase tracking-wider text-primary">
+            Welcome back
+          </p>
+          <h1 class="card-title text-3xl">Log in to BuckTracker</h1>
+          <p class="mt-2 text-base-content/70">
+            Enter your credentials to open your dashboard.
+          </p>
+        </div>
+
+        <form id="login-form" class="flex flex-col gap-4">
+          <label class="form-control">
+            <span class="label-text mb-2 font-medium">Email</span>
+            <input
+              id="email"
+              name="email"
+              type="email"
+              autocomplete="email"
+              class="input input-bordered w-full"
+              required
+            />
+          </label>
+
+          <label class="form-control">
+            <span class="label-text mb-2 font-medium">Password</span>
+            <input
+              id="password"
+              name="password"
+              type="password"
+              autocomplete="current-password"
+              class="input input-bordered w-full"
+              required
+            />
+          </label>
+
+          <button id="login-button" type="submit" class="btn btn-primary w-full">
+            Log in
+          </button>
+        </form>
+
+        <div id="login-error" class="alert alert-error hidden" role="alert">
+          <span id="login-error-message"></span>
+        </div>
+
+        <a href="/" class="btn btn-ghost btn-sm self-start">Back home</a>
+      </div>
+    </main>
+
+    <script>
+      const form = document.getElementById("login-form");
+      const loginButton = document.getElementById("login-button");
+      const errorCard = document.getElementById("login-error");
+      const errorMessage = document.getElementById("login-error-message");
+
+      form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        errorCard.classList.add("hidden");
+        loginButton.disabled = true;
+        loginButton.textContent = "Logging in...";
+
+        const formData = new FormData(form);
+
+        try {
+          const response = await fetch("http://localhost:8080/app/login", {
+            method: "POST",
+            credentials: "include",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              email: formData.get("email"),
+              password: formData.get("password"),
+            }),
+          });
+
+          if (!response.ok) {
+            errorMessage.textContent = `Login failed: ${response.status} ${response.statusText}`;
+            errorCard.classList.remove("hidden");
+            return;
+          }
+
+          const login = await response.json();
+          if (!login.access_token) {
+            errorMessage.textContent = "Login succeeded, but the backend returned no access token.";
+            errorCard.classList.remove("hidden");
+            return;
+          }
+
+          sessionStorage.setItem("access_token", login.access_token);
+          window.location.replace("/dashboard.html");
+        } catch (error) {
+          errorMessage.textContent = `Could not reach the backend: ${error.message}`;
+          errorCard.classList.remove("hidden");
+        } finally {
+          loginButton.disabled = false;
+          loginButton.textContent = "Log in";
+        }
+      });
+    </script>
+  </body>
+</html>
