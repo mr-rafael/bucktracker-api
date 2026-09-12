@@ -6,6 +6,8 @@
     <title>Dashboard | BuckTracker</title>
     <link href="https://cdn.jsdelivr.net/npm/daisyui@5" rel="stylesheet" type="text/css" />
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script src="/api-errors.js"></script>
+    <script src="/formatters.js"></script>
     <script>
       if (!sessionStorage.getItem("access_token")) {
         window.location.replace("/login.html");
@@ -74,18 +76,6 @@
       };
       let requestNumber = 0;
 
-      function formatAmount(amountInCents) {
-        const amount = Number(amountInCents);
-        if (!Number.isFinite(amount)) {
-          return "Not available";
-        }
-
-        return new Intl.NumberFormat(undefined, {
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 2,
-        }).format(amount / 100);
-      }
-
       function setStatus(message, type = "info") {
         status.className = type === "error" ? "alert alert-error" : "alert";
         status.replaceChildren();
@@ -95,9 +85,9 @@
         status.appendChild(messageElement);
       }
 
-      function createPlanCard(plan, amountField) {
+      function createPlanCard(plan, section, amountField) {
         const card = document.createElement("article");
-        card.className = "card border border-base-300 bg-base-100 shadow-sm";
+        card.className = "card h-full border border-base-300 bg-base-100 shadow-sm";
 
         const cardBody = document.createElement("div");
         cardBody.className = "card-body gap-4";
@@ -112,14 +102,43 @@
         amountLabel.textContent = "Amount";
         const amountValue = document.createElement("p");
         amountValue.className = "text-2xl font-semibold text-primary";
-        amountValue.textContent = formatAmount(plan[amountField]);
+        amountValue.textContent = formatters.dollars(plan[amountField]);
         amount.append(amountLabel, amountValue);
 
         const id = document.createElement("p");
         id.className = "break-all text-xs text-base-content/60";
         id.textContent = `ID: ${plan.id}`;
 
-        cardBody.append(name, amount, id);
+        const detailsLink = document.createElement("a");
+        detailsLink.className =
+          "mt-auto w-fit text-base-content/50 transition-colors hover:text-primary";
+        detailsLink.href = `/detail.html?type=${section}&id=${encodeURIComponent(plan.id)}`;
+        detailsLink.setAttribute("aria-label", `View details for ${plan.name || "unnamed plan"}`);
+        detailsLink.title = "View details";
+        detailsLink.innerHTML = `
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke-width="1.8"
+            stroke="currentColor"
+            class="size-6"
+            aria-hidden="true"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M2.25 12s3.75-6.75 9.75-6.75S21.75 12 21.75 12 18 18.75 12 18.75 2.25 12 2.25 12Z"
+            />
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"
+            />
+          </svg>
+        `;
+
+        cardBody.append(name, amount, id, detailsLink);
         card.appendChild(cardBody);
         return card;
       }
@@ -146,7 +165,9 @@
           }
 
           if (!response.ok) {
-            throw new Error(`${response.status} ${response.statusText}`);
+            const error = new Error(await apiErrors.formatResponse(response));
+            error.isBackendResponse = true;
+            throw error;
           }
 
           const responseBody = await response.json();
@@ -165,11 +186,14 @@
 
           status.classList.add("hidden");
           plans.forEach((plan) => {
-            cardsGrid.appendChild(createPlanCard(plan, config.amount));
+            cardsGrid.appendChild(createPlanCard(plan, section, config.amount));
           });
         } catch (error) {
           if (currentRequest === requestNumber) {
-            setStatus(`Could not load ${config.title.toLowerCase()}: ${error.message}`, "error");
+            const message = error.isBackendResponse
+              ? error.message
+              : apiErrors.formatNetworkError(error);
+            setStatus(`Could not load ${config.title.toLowerCase()}: ${message}`, "error");
           }
         }
       }

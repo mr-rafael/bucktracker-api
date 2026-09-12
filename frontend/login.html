@@ -6,6 +6,7 @@
     <title>Log in | BuckTracker</title>
     <link href="https://cdn.jsdelivr.net/npm/daisyui@5" rel="stylesheet" type="text/css" />
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script src="/api-errors.js"></script>
   </head>
   <body class="flex min-h-screen items-center justify-center bg-base-200 p-6">
     <main class="card w-full max-w-md bg-base-100 shadow-xl">
@@ -86,7 +87,7 @@
           });
 
           if (!response.ok) {
-            errorMessage.textContent = `Login failed: ${response.status} ${response.statusText}`;
+            errorMessage.textContent = `Login failed: ${await apiErrors.formatResponse(response)}`;
             errorCard.classList.remove("hidden");
             return;
           }
@@ -101,7 +102,7 @@
           sessionStorage.setItem("access_token", login.access_token);
           window.location.replace("/dashboard.html");
         } catch (error) {
-          errorMessage.textContent = `Could not reach the backend: ${error.message}`;
+          errorMessage.textContent = apiErrors.formatNetworkError(error);
           errorCard.classList.remove("hidden");
         } finally {
           loginButton.disabled = false;

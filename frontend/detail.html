@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="corporate">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Plan details | BuckTracker</title>
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@5" rel="stylesheet" type="text/css" />
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script src="/api-errors.js"></script>
+    <script src="/formatters.js"></script>
+    <script>
+      if (!sessionStorage.getItem("access_token")) {
+        window.location.replace("/login.html");
+      }
+    </script>
+  </head>
+  <body class="min-h-screen bg-base-200">
+    <main class="mx-auto max-w-4xl p-6 sm:p-10">
+      <a id="back-link" href="/dashboard.html" class="btn btn-ghost btn-sm mb-6">
+        ← Back to dashboard
+      </a>
+
+      <header class="mb-8">
+        <p id="detail-type" class="mb-1 text-sm font-semibold uppercase tracking-wider text-primary">
+          Plan details
+        </p>
+        <h1 id="detail-title" class="break-words text-3xl font-bold sm:text-4xl">Loading...</h1>
+      </header>
+
+      <div id="detail-status" class="alert" role="status" aria-live="polite">
+        <span>Loading details...</span>
+      </div>
+
+      <div id="detail-sections" class="hidden space-y-8"></div>
+    </main>
+
+    <script>
+      const API_BASE_URL = "http://localhost:8080";
+      const params = new URLSearchParams(window.location.search);
+      const type = params.get("type");
+      const id = params.get("id");
+      const typeConfig = {
+        loans: {
+          label: "Loan",
+          endpoint: "/app/loans",
+        },
+        savings: {
+          label: "Savings",
+          endpoint: "/app/savings",
+        },
+      };
+
+      const config = typeConfig[type];
+      const backLink = document.getElementById("back-link");
+      const detailType = document.getElementById("detail-type");
+      const detailTitle = document.getElementById("detail-title");
+      const detailStatus = document.getElementById("detail-status");
+      const detailSections = document.getElementById("detail-sections");
+      const monetaryFields = new Set([
+        "startingCapital",
+        "monthlyContribution",
+        "totalInterestEarnings",
+        "totalDeposited",
+        "interest",
+        "tax",
+        "contribution",
+        "increase",
+        "capital",
+        "startingPrincipal",
+        "monthlyPayment",
+        "escrowPayment",
+      ]);
+      const dateFields = new Set(["date", "startDate"]);
+      const rateFields = new Set([
+        "yearlyInterestRate",
+        "taxRate",
+        "yearlyInflationRate",
+        "rateOfReturn",
+        "inflationAdjustedROR",
+      ]);
+      const fieldLabels = {
+        inflationAdjustedROR: "Inflation Adjusted Rate of Return",
+        escrowPayment: "Other Payments",
+      };
+
+      function setError(message) {
+        detailStatus.className = "alert alert-error";
+        detailStatus.querySelector("span").textContent = message;
+      }
+
+      function humanize(value) {
+        if (fieldLabels[value]) {
+          return fieldLabels[value];
+        }
+
+        if (/^\d+$/.test(value)) {
+          return `Item ${Number(value) + 1}`;
+        }
+
+        return value
+          .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+          .replace(/[_-]/g, " ")
+          .replace(/^./, (letter) => letter.toUpperCase());
+      }
+
+      function formatFieldValue(field, value) {
+        if (value === null || value === undefined) {
+          return "Not provided";
+        }
+
+        if (monetaryFields.has(field)) {
+          return formatters.dollars(value);
+        }
+
+        if (dateFields.has(field)) {
+          return formatters.date(value);
+        }
+
+        if (rateFields.has(field)) {
+          return formatters.percentage(value);
+        }
+
+        return String(value);
+      }
+
+      function createDetailLine(labelText, valueText) {
+        const line = document.createElement("div");
+        line.className =
+          "grid gap-1 border-b border-base-300 px-5 py-4 last:border-b-0 sm:grid-cols-[minmax(12rem,1fr)_2fr] sm:gap-6";
+
+        const label = document.createElement("dt");
+        label.className = "font-medium text-base-content/65";
+        label.textContent = labelText;
+
+        const value = document.createElement("dd");
+        value.className = "break-words";
+        value.textContent = valueText === null ? "null" : String(valueText);
+
+        line.append(label, value);
+        return line;
+      }
+
+      function createDefinitionList(data) {
+        const list = document.createElement("dl");
+        list.className =
+          "overflow-hidden rounded-box border border-base-300 bg-base-100 shadow-sm";
+
+        Object.entries(data).forEach(([key, value]) => {
+          list.appendChild(createDetailLine(humanize(key), formatFieldValue(key, value)));
+        });
+
+        return list;
+      }
+
+      function createSection(titleText, content) {
+        const section = document.createElement("section");
+        const title = document.createElement("h2");
+        title.className = "mb-4 text-2xl font-bold";
+        title.textContent = titleText;
+        section.append(title, content);
+        return section;
+      }
+
+      function createSavingsPlanTable(plan) {
+        if (!Array.isArray(plan) || plan.length === 0) {
+          const emptyState = document.createElement("div");
+          emptyState.className = "alert";
+          emptyState.textContent = "No savings plan data was returned by the backend.";
+          return emptyState;
+        }
+
+        const columns = [...new Set(plan.flatMap((row) => Object.keys(row)))];
+        const wrapper = document.createElement("div");
+        wrapper.className =
+          "overflow-x-auto rounded-box border border-base-300 bg-base-100 shadow-sm";
+        const table = document.createElement("table");
+        table.className = "table table-zebra";
+
+        const head = document.createElement("thead");
+        const headerRow = document.createElement("tr");
+        columns.forEach((column) => {
+          const header = document.createElement("th");
+          header.textContent = humanize(column);
+          headerRow.appendChild(header);
+        });
+        head.appendChild(headerRow);
+
+        const body = document.createElement("tbody");
+        plan.forEach((row) => {
+          const tableRow = document.createElement("tr");
+          columns.forEach((column) => {
+            const cell = document.createElement("td");
+            const value = row[column];
+            cell.textContent = formatFieldValue(column, value);
+            tableRow.appendChild(cell);
+          });
+          body.appendChild(tableRow);
+        });
+
+        table.append(head, body);
+        wrapper.appendChild(table);
+        return wrapper;
+      }
+
+      function createPaymentPlanCard(plan) {
+        const card = document.createElement("article");
+        card.className = "card border border-base-300 bg-base-100 shadow-sm";
+
+        const body = document.createElement("div");
+        body.className = "card-body gap-3";
+
+        const name = document.createElement("h3");
+        name.className = "card-title text-xl";
+        name.textContent = plan.name || "Unnamed payment plan";
+
+        const duration = document.createElement("div");
+        const durationLabel = document.createElement("p");
+        durationLabel.className = "text-sm text-base-content/60";
+        durationLabel.textContent = "Duration";
+        const durationValue = document.createElement("p");
+        durationValue.className = "text-2xl font-semibold text-primary";
+        durationValue.textContent = `${plan.durationMonths} months`;
+        duration.append(durationLabel, durationValue);
+
+        const id = document.createElement("p");
+        id.className = "break-all text-xs text-base-content/60";
+        id.textContent = `ID: ${plan.id}`;
+
+        body.append(name, duration, id);
+        card.appendChild(body);
+        return card;
+      }
+
+      function renderLoanDetails(details) {
+        const fragment = document.createDocumentFragment();
+        const loanInformation = {
+          id: details.id,
+          ...(details.originalData || {}),
+        };
+        fragment.appendChild(
+          createSection("Loan Information", createDefinitionList(loanInformation)),
+        );
+
+        const defaultPaymentPlan = details.defaultPaymentPlan || {};
+        fragment.appendChild(
+          createSection(
+            "Default Payment Plan",
+            createDefinitionList({
+              name: defaultPaymentPlan.name || "Not provided",
+              id: defaultPaymentPlan.id || "Not provided",
+              duration: Number.isFinite(Number(defaultPaymentPlan.durationMonths))
+                ? `${defaultPaymentPlan.durationMonths} months`
+                : "Not provided",
+            }),
+          ),
+        );
+
+        const paymentPlanGrid = document.createElement("div");
+        paymentPlanGrid.className = "grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3";
+        const paymentPlans = Array.isArray(details.paymentPlans) ? details.paymentPlans : [];
+
+        if (paymentPlans.length === 0) {
+          const emptyState = document.createElement("div");
+          emptyState.className = "alert";
+          emptyState.textContent = "No payment plans were returned by the backend.";
+          paymentPlanGrid.appendChild(emptyState);
+        } else {
+          paymentPlans.forEach((plan) => {
+            paymentPlanGrid.appendChild(createPaymentPlanCard(plan));
+          });
+        }
+
+        fragment.appendChild(createSection("Loan Payment Plans", paymentPlanGrid));
+        detailSections.replaceChildren(fragment);
+        detailSections.classList.remove("hidden");
+        detailStatus.classList.add("hidden");
+      }
+
+      function renderSavingsDetails(details) {
+        const fragment = document.createDocumentFragment();
+        const information = {
+          id: details.id,
+          ...(details.originalData || {}),
+        };
+
+        fragment.appendChild(createSection("Information", createDefinitionList(information)));
+        fragment.appendChild(
+          createSection(
+            "Calculated Information",
+            createDefinitionList(details.calculatedData || {}),
+          ),
+        );
+        fragment.appendChild(
+          createSection("Savings Plan", createSavingsPlanTable(details.plan)),
+        );
+
+        detailSections.replaceChildren(fragment);
+        detailSections.classList.remove("hidden");
+        detailStatus.classList.add("hidden");
+      }
+
+      function renderDetails(details) {
+        if (type === "loans") {
+          renderLoanDetails(details);
+          return;
+        }
+
+        renderSavingsDetails(details);
+      }
+
+      async function loadDetails() {
+        if (!config || !id) {
+          detailTitle.textContent = "Invalid detail link";
+          setError("INVALID_REQUEST: A valid plan type and ID are required.");
+          return;
+        }
+
+        backLink.href = `/dashboard.html#${type}`;
+        detailType.textContent = config.label;
+
+        try {
+          const response = await fetch(
+            `${API_BASE_URL}${config.endpoint}/${encodeURIComponent(id)}`,
+            {
+              headers: {
+                Authorization: `Bearer ${sessionStorage.getItem("access_token")}`,
+              },
+            },
+          );
+
+          if (response.status === 401) {
+            sessionStorage.removeItem("access_token");
+            window.location.replace("/login.html");
+            return;
+          }
+
+          if (!response.ok) {
+            setError(`Could not load details: ${await apiErrors.formatResponse(response)}`);
+            return;
+          }
+
+          const details = await response.json();
+          const name = details.name || `Unnamed ${config.label.toLowerCase()}`;
+          detailTitle.textContent = name;
+          document.title = `${name} | BuckTracker`;
+          renderDetails(details);
+        } catch (error) {
+          setError(apiErrors.formatNetworkError(error));
+        }
+      }
+
+      loadDetails();
+    </script>
+  </body>
+</html>
