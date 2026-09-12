@@ -33,21 +33,152 @@
 
       <main class="flex-1 p-6 sm:p-10">
         <div class="mx-auto max-w-5xl">
-          <h1 id="section-title" class="text-3xl font-bold sm:text-4xl">Loans</h1>
+          <header class="mb-8">
+            <h1 id="section-title" class="text-3xl font-bold sm:text-4xl">Loans</h1>
+            <p class="mt-2 text-base-content/70">Your saved plans</p>
+          </header>
+
+          <div id="list-status" class="alert" role="status" aria-live="polite">
+            <span>Loading loans...</span>
+          </div>
+
+          <section
+            id="cards-grid"
+            class="mt-6 grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3"
+            aria-label="Saved plans"
+          ></section>
         </div>
       </main>
     </div>
 
     <script>
+      const API_BASE_URL = "http://localhost:8080";
       const title = document.getElementById("section-title");
+      const status = document.getElementById("list-status");
+      const cardsGrid = document.getElementById("cards-grid");
       const navigationLinks = document.querySelectorAll("[data-section]");
       const validSections = new Set(["loans", "savings"]);
+      const sectionConfig = {
+        loans: {
+          title: "Loans",
+          endpoint: "/app/loans/list",
+          collection: "loans",
+          amount: "loanAmount",
+        },
+        savings: {
+          title: "Savings",
+          endpoint: "/app/savings/list",
+          collection: "plans",
+          amount: "startingCapital",
+        },
+      };
+      let requestNumber = 0;
+
+      function formatAmount(amountInCents) {
+        const amount = Number(amountInCents);
+        if (!Number.isFinite(amount)) {
+          return "Not available";
+        }
+
+        return new Intl.NumberFormat(undefined, {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        }).format(amount / 100);
+      }
+
+      function setStatus(message, type = "info") {
+        status.className = type === "error" ? "alert alert-error" : "alert";
+        status.replaceChildren();
+
+        const messageElement = document.createElement("span");
+        messageElement.textContent = message;
+        status.appendChild(messageElement);
+      }
+
+      function createPlanCard(plan, amountField) {
+        const card = document.createElement("article");
+        card.className = "card border border-base-300 bg-base-100 shadow-sm";
+
+        const cardBody = document.createElement("div");
+        cardBody.className = "card-body gap-4";
+
+        const name = document.createElement("h2");
+        name.className = "card-title";
+        name.textContent = plan.name || "Unnamed plan";
+
+        const amount = document.createElement("div");
+        const amountLabel = document.createElement("p");
+        amountLabel.className = "text-sm text-base-content/60";
+        amountLabel.textContent = "Amount";
+        const amountValue = document.createElement("p");
+        amountValue.className = "text-2xl font-semibold text-primary";
+        amountValue.textContent = formatAmount(plan[amountField]);
+        amount.append(amountLabel, amountValue);
+
+        const id = document.createElement("p");
+        id.className = "break-all text-xs text-base-content/60";
+        id.textContent = `ID: ${plan.id}`;
+
+        cardBody.append(name, amount, id);
+        card.appendChild(cardBody);
+        return card;
+      }
+
+      async function loadPlans(section) {
+        const currentRequest = ++requestNumber;
+        const config = sectionConfig[section];
+        const accessToken = sessionStorage.getItem("access_token");
+
+        cardsGrid.replaceChildren();
+        setStatus(`Loading ${config.title.toLowerCase()}...`);
+
+        try {
+          const response = await fetch(`${API_BASE_URL}${config.endpoint}`, {
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+            },
+          });
+
+          if (response.status === 401) {
+            sessionStorage.removeItem("access_token");
+            window.location.replace("/login.html");
+            return;
+          }
+
+          if (!response.ok) {
+            throw new Error(`${response.status} ${response.statusText}`);
+          }
+
+          const responseBody = await response.json();
+          if (currentRequest !== requestNumber) {
+            return;
+          }
+
+          const plans = Array.isArray(responseBody[config.collection])
+            ? responseBody[config.collection]
+            : [];
+
+          if (plans.length === 0) {
+            setStatus(`You do not have any saved ${config.title.toLowerCase()} yet.`);
+            return;
+          }
+
+          status.classList.add("hidden");
+          plans.forEach((plan) => {
+            cardsGrid.appendChild(createPlanCard(plan, config.amount));
+          });
+        } catch (error) {
+          if (currentRequest === requestNumber) {
+            setStatus(`Could not load ${config.title.toLowerCase()}: ${error.message}`, "error");
+          }
+        }
+      }
 
       function showSection() {
         const requestedSection = window.location.hash.slice(1).toLowerCase();
         const section = validSections.has(requestedSection) ? requestedSection : "loans";
 
-        title.textContent = section === "loans" ? "Loans" : "Savings";
+        title.textContent = sectionConfig[section].title;
 
         navigationLinks.forEach((link) => {
           const isCurrent = link.dataset.section === section;
@@ -59,6 +190,9 @@
             link.removeAttribute("aria-current");
           }
         });
+
+        status.classList.remove("hidden");
+        loadPlans(section);
       }
 
       window.addEventListener("hashchange", showSection);
