@@ -39,6 +39,7 @@
       const params = new URLSearchParams(window.location.search);
       const type = params.get("type");
       const id = params.get("id");
+      const loanId = params.get("loanId");
       const typeConfig = {
         loans: {
           label: "Loan",
@@ -47,6 +48,9 @@
         savings: {
           label: "Savings",
           endpoint: "/app/savings",
+        },
+        "payment-plans": {
+          label: "Payment Plan",
         },
       };
 
@@ -69,6 +73,13 @@
         "startingPrincipal",
         "monthlyPayment",
         "escrowPayment",
+        "totalExpenditure",
+        "totalPaid",
+        "amount",
+        "payment",
+        "otherPayments",
+        "paydown",
+        "principal",
       ]);
       const dateFields = new Set(["date", "startDate"]);
       const rateFields = new Set([
@@ -77,6 +88,7 @@
         "yearlyInflationRate",
         "rateOfReturn",
         "inflationAdjustedROR",
+        "costOfCredit",
       ]);
       const fieldLabels = {
         inflationAdjustedROR: "Inflation Adjusted Rate of Return",
@@ -161,15 +173,15 @@
         return section;
       }
 
-      function createSavingsPlanTable(plan) {
-        if (!Array.isArray(plan) || plan.length === 0) {
+      function createDataTable(rows, emptyMessage) {
+        if (!Array.isArray(rows) || rows.length === 0) {
           const emptyState = document.createElement("div");
           emptyState.className = "alert";
-          emptyState.textContent = "No savings plan data was returned by the backend.";
+          emptyState.textContent = emptyMessage;
           return emptyState;
         }
 
-        const columns = [...new Set(plan.flatMap((row) => Object.keys(row)))];
+        const columns = [...new Set(rows.flatMap((row) => Object.keys(row)))];
         const wrapper = document.createElement("div");
         wrapper.className =
           "overflow-x-auto rounded-box border border-base-300 bg-base-100 shadow-sm";
@@ -186,7 +198,7 @@
         head.appendChild(headerRow);
 
         const body = document.createElement("tbody");
-        plan.forEach((row) => {
+        rows.forEach((row) => {
           const tableRow = document.createElement("tr");
           columns.forEach((column) => {
             const cell = document.createElement("td");
@@ -202,9 +214,9 @@
         return wrapper;
       }
 
-      function createPaymentPlanCard(plan) {
+      function createPaymentPlanCard(plan, loanId) {
         const card = document.createElement("article");
-        card.className = "card border border-base-300 bg-base-100 shadow-sm";
+        card.className = "card h-full border border-base-300 bg-base-100 shadow-sm";
 
         const body = document.createElement("div");
         body.className = "card-body gap-3";
@@ -226,7 +238,41 @@
         id.className = "break-all text-xs text-base-content/60";
         id.textContent = `ID: ${plan.id}`;
 
-        body.append(name, duration, id);
+        const detailsLink = document.createElement("a");
+        detailsLink.className =
+          "mt-auto w-fit text-base-content/50 transition-colors hover:text-primary";
+        detailsLink.href =
+          `/detail.html?type=payment-plans&loanId=${encodeURIComponent(loanId)}` +
+          `&id=${encodeURIComponent(plan.id)}`;
+        detailsLink.setAttribute(
+          "aria-label",
+          `View details for ${plan.name || "unnamed payment plan"}`,
+        );
+        detailsLink.title = "View payment plan details";
+        detailsLink.innerHTML = `
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke-width="1.8"
+            stroke="currentColor"
+            class="size-6"
+            aria-hidden="true"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M2.25 12s3.75-6.75 9.75-6.75S21.75 12 21.75 12 18 18.75 12 18.75 2.25 12 2.25 12Z"
+            />
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"
+            />
+          </svg>
+        `;
+
+        body.append(name, duration, id, detailsLink);
         card.appendChild(body);
         return card;
       }
@@ -266,7 +312,7 @@
           paymentPlanGrid.appendChild(emptyState);
         } else {
           paymentPlans.forEach((plan) => {
-            paymentPlanGrid.appendChild(createPaymentPlanCard(plan));
+            paymentPlanGrid.appendChild(createPaymentPlanCard(plan, details.id));
           });
         }
 
@@ -291,7 +337,52 @@
           ),
         );
         fragment.appendChild(
-          createSection("Savings Plan", createSavingsPlanTable(details.plan)),
+          createSection(
+            "Savings Plan",
+            createDataTable(
+              details.plan,
+              "No savings plan data was returned by the backend.",
+            ),
+          ),
+        );
+
+        detailSections.replaceChildren(fragment);
+        detailSections.classList.remove("hidden");
+        detailStatus.classList.add("hidden");
+      }
+
+      function renderPaymentPlanDetails(details) {
+        const fragment = document.createDocumentFragment();
+        const {
+          name,
+          principalPayments,
+          paymentPlanBreakdown,
+          ...paymentPlanInformation
+        } = details;
+
+        fragment.appendChild(
+          createSection(
+            "Payment Plan Information",
+            createDefinitionList(paymentPlanInformation),
+          ),
+        );
+        fragment.appendChild(
+          createSection(
+            "Principal Payments",
+            createDataTable(
+              principalPayments,
+              "No principal payments were returned by the backend.",
+            ),
+          ),
+        );
+        fragment.appendChild(
+          createSection(
+            "Payment Plan Breakdown",
+            createDataTable(
+              paymentPlanBreakdown,
+              "No payment plan breakdown was returned by the backend.",
+            ),
+          ),
         );
 
         detailSections.replaceChildren(fragment);
@@ -305,28 +396,41 @@
           return;
         }
 
+        if (type === "payment-plans") {
+          renderPaymentPlanDetails(details);
+          return;
+        }
+
         renderSavingsDetails(details);
       }
 
       async function loadDetails() {
-        if (!config || !id) {
+        const isPaymentPlan = type === "payment-plans";
+        if (!config || !id || (isPaymentPlan && !loanId)) {
           detailTitle.textContent = "Invalid detail link";
-          setError("INVALID_REQUEST: A valid plan type and ID are required.");
+          setError(
+            "INVALID_REQUEST: A valid plan type, plan ID, and parent loan ID are required.",
+          );
           return;
         }
 
-        backLink.href = `/dashboard.html#${type}`;
+        backLink.href = isPaymentPlan
+          ? `/detail.html?type=loans&id=${encodeURIComponent(loanId)}`
+          : `/dashboard.html#${type}`;
+        if (isPaymentPlan) {
+          backLink.textContent = "← Back to loan";
+        }
         detailType.textContent = config.label;
+        const endpoint = isPaymentPlan
+          ? `/app/loans/${encodeURIComponent(loanId)}/payment-plans/${encodeURIComponent(id)}`
+          : `${config.endpoint}/${encodeURIComponent(id)}`;
 
         try {
-          const response = await fetch(
-            `${API_BASE_URL}${config.endpoint}/${encodeURIComponent(id)}`,
-            {
-              headers: {
-                Authorization: `Bearer ${sessionStorage.getItem("access_token")}`,
-              },
+          const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+            headers: {
+              Authorization: `Bearer ${sessionStorage.getItem("access_token")}`,
             },
-          );
+          });
 
           if (response.status === 401) {
             sessionStorage.removeItem("access_token");
