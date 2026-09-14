@@ -8,11 +8,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <script src="/api-errors.js"></script>
     <script src="/formatters.js"></script>
-    <script>
-      if (!sessionStorage.getItem("access_token")) {
-        window.location.replace("/login.html");
-      }
-    </script>
+    <script src="/authenticated-api.js"></script>
   </head>
   <body class="min-h-screen bg-base-200">
     <main class="mx-auto max-w-4xl p-6 sm:p-10">
@@ -426,17 +422,7 @@
           : `${config.endpoint}/${encodeURIComponent(id)}`;
 
         try {
-          const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-            headers: {
-              Authorization: `Bearer ${sessionStorage.getItem("access_token")}`,
-            },
-          });
-
-          if (response.status === 401) {
-            sessionStorage.removeItem("access_token");
-            window.location.replace("/login.html");
-            return;
-          }
+          const response = await authenticatedApi.fetch(`${API_BASE_URL}${endpoint}`);
 
           if (!response.ok) {
             setError(`Could not load details: ${await apiErrors.formatResponse(response)}`);
@@ -449,7 +435,14 @@
           document.title = `${name} | BuckTracker`;
           renderDetails(details);
         } catch (error) {
-          setError(apiErrors.formatNetworkError(error));
+          if (authenticatedApi.isRedirectError(error)) {
+            return;
+          }
+
+          const message = error.isBackendResponse || error.isInvalidResponse
+            ? error.message
+            : apiErrors.formatNetworkError(error);
+          setError(message);
         }
       }
 
