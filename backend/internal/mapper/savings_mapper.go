@@ -76,6 +76,7 @@ func ToGetSavingsResponse(plan domain.SavingsPlan) dto.SavedSavingsResponseParam
 	calculatedParams := dto.CalculatedSavingsData{
 		MonthlyInterestRate:   monthlyInterestRate,
 		TotalInterestEarnings: int(plan.TotalInterestEarnings.Round(0).IntPart()),
+		TotalDeposited:        int(plan.TotalDeposited.Round(0).IntPart()),
 		RateOfReturn:          plan.RateOfReturn.String(),
 		InflationAdjustedROR:  plan.InflationAdjustedROR.String(),
 	}

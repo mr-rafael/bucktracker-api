@@ -1080,7 +1080,7 @@ None.
     "calculatedData": {
         "monthlyInterestRate": "0.3874684992",
         "totalInterestEarnings": 37136,
-        "totalDeposited": 0,
+        "totalDeposited": 880000,
         "rateOfReturn": "4.22",
         "inflationAdjustedROR": "4.22"
     },
