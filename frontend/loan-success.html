@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Savings Plan Created | BuckTracker</title>
+    <title>Loan Created | BuckTracker</title>
     <link href="https://cdn.jsdelivr.net/npm/daisyui@5" rel="stylesheet" type="text/css" />
     <link
       href="https://cdn.jsdelivr.net/npm/@highlightjs/cdn-assets@11.11.1/styles/github-dark.min.css"
@@ -29,13 +29,11 @@
             <path stroke-linecap="round" stroke-linejoin="round" d="m8 12 2.5 2.5L16.5 9"></path>
           </svg>
 
-          <h1 class="text-3xl font-bold sm:text-4xl">
-            Savings Plan successfully created.
-          </h1>
+          <h1 class="text-3xl font-bold sm:text-4xl">Loan successfully created.</h1>
 
           <div class="flex flex-wrap justify-center gap-3">
-            <a href="/dashboard.html#savings" class="btn btn-outline">
-              Back to my savings
+            <a href="/dashboard.html#loans" class="btn btn-outline">
+              Back to my loans
             </a>
             <a id="detail-link" class="btn btn-primary">See detail</a>
           </div>
@@ -55,11 +53,11 @@
       const responseCode = document.getElementById("response-json");
       const detailLink = document.getElementById("detail-link");
       const errorAlert = document.getElementById("success-error");
-      const storedResponse = sessionStorage.getItem("created_savings_response");
+      const storedResponse = sessionStorage.getItem("created_loan_response");
 
       if (!storedResponse) {
         errorAlert.querySelector("span").textContent =
-          "INVALID_STATE: The savings response is not available in this browser tab.";
+          "INVALID_STATE: The loan response is not available in this browser tab.";
         errorAlert.classList.remove("hidden");
         detailLink.classList.add("btn-disabled");
         detailLink.removeAttribute("href");
@@ -69,7 +67,7 @@
           const response = JSON.parse(storedResponse);
           responseCode.textContent = JSON.stringify(response, null, 2);
           detailLink.href =
-            `/detail.html?type=savings&id=${encodeURIComponent(response.id)}`;
+            `/detail.html?type=loans&id=${encodeURIComponent(response.id)}`;
         } catch (error) {
           errorAlert.querySelector("span").textContent =
             `INVALID_RESPONSE: ${error.message}`;

@@ -57,6 +57,14 @@
       Create new Saving +
     </a>
 
+    <a
+      id="create-loan"
+      href="/create-loan.html"
+      class="btn btn-primary fixed right-6 bottom-6 hidden shadow-lg"
+    >
+      Create new Loan +
+    </a>
+
     <script>
       const API_BASE_URL = "http://localhost:8080";
       const title = document.getElementById("section-title");
@@ -217,6 +225,9 @@
         document
           .getElementById("create-savings")
           .classList.toggle("hidden", section !== "savings");
+        document
+          .getElementById("create-loan")
+          .classList.toggle("hidden", section !== "loans");
         status.classList.remove("hidden");
         loadPlans(section);
       }

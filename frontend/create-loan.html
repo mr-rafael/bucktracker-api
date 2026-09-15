@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="corporate">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Create Loan | BuckTracker</title>
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@5" rel="stylesheet" type="text/css" />
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script src="/api-errors.js"></script>
+    <script src="/formatters.js"></script>
+    <script src="/authenticated-api.js"></script>
+  </head>
+  <body class="min-h-screen bg-base-200">
+    <main class="mx-auto max-w-3xl p-6 sm:p-10">
+      <a href="/dashboard.html#loans" class="btn btn-ghost btn-sm mb-6">
+        ← Back to my loans
+      </a>
+
+      <div class="card bg-base-100 shadow-xl">
+        <div class="card-body gap-6">
+          <header>
+            <p class="mb-1 text-sm font-semibold uppercase tracking-wider text-primary">
+              New loan
+            </p>
+            <h1 class="text-3xl font-bold sm:text-4xl">Create a loan</h1>
+          </header>
+
+          <form id="loan-form" class="grid gap-5 md:grid-cols-2">
+            <label class="form-control md:col-span-2">
+              <span class="label-text mb-2 font-medium">Name</span>
+              <input
+                name="name"
+                type="text"
+                class="input input-bordered w-full"
+                autocomplete="off"
+                required
+              />
+            </label>
+
+            <label class="form-control">
+              <span class="label-text mb-2 font-medium">Starting Principal</span>
+              <input
+                name="startingPrincipal"
+                type="text"
+                inputmode="decimal"
+                class="input input-bordered w-full"
+                placeholder="$0.00"
+                autocomplete="off"
+                data-currency
+                required
+              />
+            </label>
+
+            <label class="form-control">
+              <span class="label-text mb-2 font-medium">Monthly Payment</span>
+              <input
+                name="monthlyPayment"
+                type="text"
+                inputmode="decimal"
+                class="input input-bordered w-full"
+                placeholder="$0.00"
+                autocomplete="off"
+                data-currency
+                required
+              />
+            </label>
+
+            <label class="form-control">
+              <span class="label-text mb-2 font-medium">Other Payments</span>
+              <input
+                name="escrowPayment"
+                type="text"
+                inputmode="decimal"
+                class="input input-bordered w-full"
+                placeholder="$0.00"
+                autocomplete="off"
+                data-currency
+                required
+              />
+            </label>
+
+            <label class="form-control">
+              <span class="label-text mb-2 font-medium">Yearly Interest Rate (%)</span>
+              <input
+                name="yearlyInterestRate"
+                type="text"
+                inputmode="decimal"
+                pattern="[0-9]+(?:\.[0-9]+)?"
+                class="input input-bordered w-full"
+                placeholder="5.25"
+                required
+              />
+            </label>
+
+            <label class="form-control md:col-span-2">
+              <span class="label-text mb-2 font-medium">Start Date</span>
+              <input
+                name="startDate"
+                type="date"
+                class="input input-bordered w-full"
+                required
+              />
+            </label>
+
+            <div id="form-error" class="alert alert-error hidden md:col-span-2" role="alert">
+              <span id="form-error-message"></span>
+            </div>
+
+            <button
+              id="submit-button"
+              type="submit"
+              class="btn btn-primary md:col-span-2"
+              disabled
+            >
+              Create loan
+            </button>
+          </form>
+        </div>
+      </div>
+    </main>
+
+    <script>
+      const API_BASE_URL = "http://localhost:8080";
+      const form = document.getElementById("loan-form");
+      const submitButton = document.getElementById("submit-button");
+      const errorAlert = document.getElementById("form-error");
+      const errorMessage = document.getElementById("form-error-message");
+      const currencyInputs = form.querySelectorAll("[data-currency]");
+
+      function parseDollars(value) {
+        const normalizedValue = value.replace(/[$,\s]/g, "");
+        if (!/^\d+(?:\.\d{0,2})?$/.test(normalizedValue)) {
+          return null;
+        }
+
+        const amount = Number(normalizedValue);
+        return Number.isFinite(amount) ? Math.round(amount * 100) : null;
+      }
+
+      function updateCurrencyValue(input) {
+        const sanitizedValue = input.value
+          .replace(/[^\d.]/g, "")
+          .replace(/^(\d*\.?\d{0,2}).*$/, "$1");
+        input.value = sanitizedValue;
+
+        const cents = parseDollars(sanitizedValue);
+        if (cents === null) {
+          delete input.dataset.cents;
+        } else {
+          input.dataset.cents = String(cents);
+        }
+      }
+
+      function updateSubmitButton() {
+        const allFieldsHaveValues = [...form.elements]
+          .filter((element) => element.name)
+          .every((element) => element.value.trim() !== "");
+        const currenciesAreValid = [...currencyInputs].every(
+          (input) => input.dataset.cents !== undefined,
+        );
+
+        submitButton.disabled =
+          !allFieldsHaveValues || !currenciesAreValid || !form.checkValidity();
+      }
+
+      currencyInputs.forEach((input) => {
+        input.addEventListener("focus", () => {
+          if (input.dataset.cents !== undefined) {
+            input.value = (Number(input.dataset.cents) / 100).toFixed(2);
+          }
+        });
+
+        input.addEventListener("input", () => {
+          updateCurrencyValue(input);
+          updateSubmitButton();
+        });
+
+        input.addEventListener("blur", () => {
+          if (input.dataset.cents !== undefined) {
+            input.value = formatters.dollars(input.dataset.cents);
+          }
+          updateSubmitButton();
+        });
+      });
+
+      form.addEventListener("input", updateSubmitButton);
+      form.addEventListener("change", updateSubmitButton);
+
+      form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        if (!form.checkValidity() || submitButton.disabled) {
+          return;
+        }
+
+        errorAlert.classList.add("hidden");
+        submitButton.disabled = true;
+        submitButton.textContent = "Creating...";
+
+        const formData = new FormData(form);
+        const payload = {
+          name: formData.get("name").trim(),
+          startingPrincipal: Number(form.elements.startingPrincipal.dataset.cents),
+          yearlyInterestRate: formData.get("yearlyInterestRate").trim(),
+          monthlyPayment: Number(form.elements.monthlyPayment.dataset.cents),
+          escrowPayment: Number(form.elements.escrowPayment.dataset.cents),
+          startDate: formatters.date(formData.get("startDate")),
+        };
+
+        try {
+          const response = await authenticatedApi.fetch(
+            `${API_BASE_URL}/app/loans/save`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify(payload),
+            },
+          );
+
+          if (!response.ok) {
+            errorMessage.textContent = await apiErrors.formatResponse(response);
+            errorAlert.classList.remove("hidden");
+            return;
+          }
+
+          let responseBody;
+          try {
+            responseBody = await response.json();
+          } catch (error) {
+            error.message = `INVALID_RESPONSE: ${error.message}`;
+            error.isInvalidResponse = true;
+            throw error;
+          }
+
+          if (!responseBody.id) {
+            const error = new Error(
+              "INVALID_RESPONSE: The backend response did not include a loan ID.",
+            );
+            error.isInvalidResponse = true;
+            throw error;
+          }
+
+          sessionStorage.setItem("created_loan_response", JSON.stringify(responseBody));
+          window.location.assign("/loan-success.html");
+        } catch (error) {
+          if (authenticatedApi.isRedirectError(error)) {
+            return;
+          }
+
+          errorMessage.textContent =
+            error.isBackendResponse || error.isInvalidResponse
+              ? error.message
+              : apiErrors.formatNetworkError(error);
+          errorAlert.classList.remove("hidden");
+        } finally {
+          submitButton.textContent = "Create loan";
+          updateSubmitButton();
+        }
+      });
+
+      updateSubmitButton();
+    </script>
+  </body>
+</html>
