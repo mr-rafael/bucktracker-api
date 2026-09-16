@@ -160,12 +160,20 @@
         return list;
       }
 
-      function createSection(titleText, content) {
+      function createSection(titleText, content, action = null) {
         const section = document.createElement("section");
         const title = document.createElement("h2");
-        title.className = "mb-4 text-2xl font-bold";
+        title.className = "text-2xl font-bold";
         title.textContent = titleText;
-        section.append(title, content);
+
+        const header = document.createElement("div");
+        header.className = "mb-4 flex flex-wrap items-center justify-between gap-3";
+        header.appendChild(title);
+        if (action) {
+          header.appendChild(action);
+        }
+
+        section.append(header, content);
         return section;
       }
 
@@ -312,7 +320,19 @@
           });
         }
 
-        fragment.appendChild(createSection("Loan Payment Plans", paymentPlanGrid));
+        const createPaymentPlanLink = document.createElement("a");
+        createPaymentPlanLink.className = "btn btn-primary btn-sm";
+        createPaymentPlanLink.href =
+          `/create-payment-plan.html?loanId=${encodeURIComponent(details.id)}`;
+        createPaymentPlanLink.textContent = "Add new payment plan";
+
+        fragment.appendChild(
+          createSection(
+            "Loan Payment Plans",
+            paymentPlanGrid,
+            createPaymentPlanLink,
+          ),
+        );
         detailSections.replaceChildren(fragment);
         detailSections.classList.remove("hidden");
         detailStatus.classList.add("hidden");

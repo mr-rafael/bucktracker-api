@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="corporate">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Create Payment Plan | BuckTracker</title>
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@5" rel="stylesheet" type="text/css" />
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script src="/api-errors.js"></script>
+    <script src="/formatters.js"></script>
+    <script src="/authenticated-api.js"></script>
+  </head>
+  <body class="min-h-screen bg-base-200 pb-28">
+    <main class="mx-auto max-w-3xl p-6 sm:p-10">
+      <a id="back-link" href="/dashboard.html#loans" class="btn btn-ghost btn-sm mb-6">
+        ← Return to loan details
+      </a>
+
+      <div class="card bg-base-100 shadow-xl">
+        <div class="card-body gap-6">
+          <header>
+            <p class="mb-1 text-sm font-semibold uppercase tracking-wider text-primary">
+              New payment plan
+            </p>
+            <h1 class="text-3xl font-bold sm:text-4xl">Create a payment plan</h1>
+          </header>
+
+          <form id="payment-plan-form" class="flex flex-col gap-6">
+            <label class="form-control">
+              <span class="label-text mb-2 font-medium">Name</span>
+              <input
+                name="name"
+                type="text"
+                class="input input-bordered w-full"
+                autocomplete="off"
+                required
+              />
+            </label>
+
+            <section>
+              <h2 class="mb-4 text-xl font-bold">Principal Payments</h2>
+              <p id="loan-date-range" class="mb-4 text-sm text-base-content/70">
+                Loading default payment plan dates...
+              </p>
+              <div id="payments" class="flex flex-col gap-4"></div>
+
+              <button id="add-payment" type="button" class="btn btn-outline btn-sm mt-4">
+                Add a payment
+              </button>
+            </section>
+
+            <div id="form-error" class="alert alert-error hidden" role="alert">
+              <span id="form-error-message"></span>
+            </div>
+          </form>
+        </div>
+      </div>
+    </main>
+
+    <div class="fixed inset-x-0 bottom-0 z-20 border-t border-base-300 bg-base-100/95 shadow-lg backdrop-blur">
+      <div class="mx-auto flex max-w-3xl justify-end p-4 sm:px-10">
+        <button
+          id="submit-button"
+          type="submit"
+          form="payment-plan-form"
+          class="btn btn-primary"
+          disabled
+        >
+          Create payment plan
+        </button>
+      </div>
+    </div>
+
+    <script>
+      const API_BASE_URL = "http://localhost:8080";
+      const loanId = new URLSearchParams(window.location.search).get("loanId");
+      const form = document.getElementById("payment-plan-form");
+      const paymentsContainer = document.getElementById("payments");
+      const addPaymentButton = document.getElementById("add-payment");
+      const submitButton = document.getElementById("submit-button");
+      const errorAlert = document.getElementById("form-error");
+      const errorMessage = document.getElementById("form-error-message");
+      const backLink = document.getElementById("back-link");
+      const loanDateRangeText = document.getElementById("loan-date-range");
+      let paymentCount = 0;
+
+      function parseDollars(value) {
+        const normalizedValue = value.replace(/[$,\s]/g, "");
+        if (!/^\d+(?:\.\d{0,2})?$/.test(normalizedValue)) {
+          return null;
+        }
+
+        const amount = Number(normalizedValue);
+        return Number.isFinite(amount) ? Math.round(amount * 100) : null;
+      }
+
+      function updateSubmitButton() {
+        const amountInputs = [...form.querySelectorAll("[data-payment-amount]")];
+        const allCurrenciesAreValid = amountInputs.every(
+          (input) => input.dataset.cents !== undefined,
+        );
+        const allFieldsHaveValues = [...form.querySelectorAll("input")].every(
+          (input) => input.value.trim() !== "",
+        );
+
+        submitButton.disabled =
+          !loanId ||
+          !allFieldsHaveValues ||
+          !allCurrenciesAreValid ||
+          !form.checkValidity();
+      }
+
+      function attachCurrencyBehavior(input) {
+        input.addEventListener("focus", () => {
+          if (input.dataset.cents !== undefined) {
+            input.value = (Number(input.dataset.cents) / 100).toFixed(2);
+          }
+        });
+
+        input.addEventListener("input", () => {
+          const sanitizedValue = input.value
+            .replace(/[^\d.]/g, "")
+            .replace(/^(\d*\.?\d{0,2}).*$/, "$1");
+          input.value = sanitizedValue;
+
+          const cents = parseDollars(sanitizedValue);
+          if (cents === null) {
+            delete input.dataset.cents;
+          } else {
+            input.dataset.cents = String(cents);
+          }
+          updateSubmitButton();
+        });
+
+        input.addEventListener("blur", () => {
+          if (input.dataset.cents !== undefined) {
+            input.value = formatters.dollars(input.dataset.cents);
+          }
+          updateSubmitButton();
+        });
+      }
+
+      function calculateLoanEndDate(startDate, durationMonths) {
+        const endDate = new Date(`${startDate}T00:00:00Z`);
+        for (let month = 0; month < durationMonths; month += 1) {
+          endDate.setUTCMonth(endDate.getUTCMonth() + 1);
+        }
+        return endDate.toISOString().slice(0, 10);
+      }
+
+      async function loadLoanDateRange() {
+        try {
+          const response = await authenticatedApi.fetch(
+            `${API_BASE_URL}/app/loans/${encodeURIComponent(loanId)}`,
+          );
+
+          if (!response.ok) {
+            errorMessage.textContent = await apiErrors.formatResponse(response);
+            errorAlert.classList.remove("hidden");
+            loanDateRangeText.textContent = "Loan date range is unavailable.";
+            return;
+          }
+
+          let loan;
+          try {
+            loan = await response.json();
+          } catch (error) {
+            error.message = `INVALID_RESPONSE: ${error.message}`;
+            error.isInvalidResponse = true;
+            throw error;
+          }
+
+          const start = formatters.date(loan.originalData?.startDate);
+          const durationMonths = Number(loan.defaultPaymentPlan?.durationMonths);
+          if (
+            !/^\d{4}-\d{2}-\d{2}$/.test(start) ||
+            !Number.isInteger(durationMonths) ||
+            durationMonths < 1
+          ) {
+            const error = new Error(
+              "INVALID_RESPONSE: The loan response did not include a valid default payment plan date range.",
+            );
+            error.isInvalidResponse = true;
+            throw error;
+          }
+
+          const end = calculateLoanEndDate(start, durationMonths);
+          loanDateRangeText.textContent =
+            `Loan start: ${start} | Loan end: ${end}`;
+        } catch (error) {
+          if (authenticatedApi.isRedirectError(error)) {
+            return;
+          }
+
+          errorMessage.textContent =
+            error.isBackendResponse || error.isInvalidResponse
+              ? error.message
+              : apiErrors.formatNetworkError(error);
+          errorAlert.classList.remove("hidden");
+          loanDateRangeText.textContent = "Loan date range is unavailable.";
+        }
+      }
+
+      function addPayment() {
+        paymentCount += 1;
+        const row = document.createElement("div");
+        row.className = "card border border-base-300 bg-base-200";
+        row.dataset.paymentRow = "";
+
+        const body = document.createElement("div");
+        body.className = "card-body gap-4";
+
+        const title = document.createElement("h3");
+        title.className = "font-semibold";
+        title.textContent = `Principal payment ${paymentCount}`;
+
+        const fields = document.createElement("div");
+        fields.className = "grid gap-4 sm:grid-cols-2";
+
+        const amountLabel = document.createElement("label");
+        amountLabel.className = "form-control";
+        const amountText = document.createElement("span");
+        amountText.className = "label-text mb-2 font-medium";
+        amountText.textContent = "Amount";
+        const amountInput = document.createElement("input");
+        amountInput.type = "text";
+        amountInput.inputMode = "decimal";
+        amountInput.placeholder = "$0.00";
+        amountInput.autocomplete = "off";
+        amountInput.required = true;
+        amountInput.className = "input input-bordered w-full";
+        amountInput.dataset.paymentAmount = "";
+        amountLabel.append(amountText, amountInput);
+
+        const dateLabel = document.createElement("label");
+        dateLabel.className = "form-control";
+        const dateText = document.createElement("span");
+        dateText.className = "label-text mb-2 font-medium";
+        dateText.textContent = "Date";
+        const dateInput = document.createElement("input");
+        dateInput.type = "date";
+        dateInput.required = true;
+        dateInput.className = "input input-bordered w-full";
+        dateInput.dataset.paymentDate = "";
+        dateLabel.append(dateText, dateInput);
+
+        attachCurrencyBehavior(amountInput);
+        fields.append(amountLabel, dateLabel);
+        body.append(title, fields);
+        row.appendChild(body);
+        paymentsContainer.appendChild(row);
+        updateSubmitButton();
+      }
+
+      form.addEventListener("input", updateSubmitButton);
+      form.addEventListener("change", updateSubmitButton);
+      addPaymentButton.addEventListener("click", addPayment);
+
+      form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        if (!form.checkValidity() || submitButton.disabled) {
+          return;
+        }
+
+        errorAlert.classList.add("hidden");
+        submitButton.disabled = true;
+        submitButton.textContent = "Creating...";
+
+        const principalPayments = [...form.querySelectorAll("[data-payment-row]")].map(
+          (row) => ({
+            amount: Number(row.querySelector("[data-payment-amount]").dataset.cents),
+            date: formatters.date(row.querySelector("[data-payment-date]").value),
+          }),
+        );
+        const payload = {
+          name: new FormData(form).get("name").trim(),
+          principalPayments,
+        };
+
+        try {
+          const response = await authenticatedApi.fetch(
+            `${API_BASE_URL}/app/loans/${encodeURIComponent(loanId)}/payment-plans`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify(payload),
+            },
+          );
+
+          if (!response.ok) {
+            errorMessage.textContent = await apiErrors.formatResponse(response);
+            errorAlert.classList.remove("hidden");
+            return;
+          }
+
+          let responseBody;
+          try {
+            responseBody = await response.json();
+          } catch (error) {
+            error.message = `INVALID_RESPONSE: ${error.message}`;
+            error.isInvalidResponse = true;
+            throw error;
+          }
+
+          if (!responseBody.id) {
+            const error = new Error(
+              "INVALID_RESPONSE: The backend response did not include a payment plan ID.",
+            );
+            error.isInvalidResponse = true;
+            throw error;
+          }
+
+          sessionStorage.setItem(
+            "created_payment_plan_response",
+            JSON.stringify(responseBody),
+          );
+          sessionStorage.setItem("created_payment_plan_loan_id", loanId);
+          window.location.assign("/payment-plan-success.html");
+        } catch (error) {
+          if (authenticatedApi.isRedirectError(error)) {
+            return;
+          }
+
+          errorMessage.textContent =
+            error.isBackendResponse || error.isInvalidResponse
+              ? error.message
+              : apiErrors.formatNetworkError(error);
+          errorAlert.classList.remove("hidden");
+        } finally {
+          submitButton.textContent = "Create payment plan";
+          updateSubmitButton();
+        }
+      });
+
+      if (loanId) {
+        backLink.href = `/detail.html?type=loans&id=${encodeURIComponent(loanId)}`;
+      } else {
+        errorMessage.textContent =
+          "INVALID_REQUEST: A parent loan ID is required.";
+        errorAlert.classList.remove("hidden");
+        addPaymentButton.disabled = true;
+      }
+
+      addPayment();
+      if (loanId) {
+        loadLoanDateRange();
+      }
+    </script>
+  </body>
+</html>
