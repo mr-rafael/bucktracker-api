@@ -9,6 +9,7 @@
     <script src="/api-errors.js"></script>
     <script src="/formatters.js"></script>
     <script src="/authenticated-api.js"></script>
+    <script src="/delete-modal.js"></script>
   </head>
   <body class="min-h-screen bg-base-200">
     <main class="mx-auto max-w-4xl p-6 sm:p-10">
@@ -276,7 +277,20 @@
           </svg>
         `;
 
-        body.append(name, duration, id, detailsLink);
+        const deleteButton = deleteModal.createTrashButton({
+          name: plan.name,
+          kind: "Plan",
+          endpoint:
+            `${API_BASE_URL}/app/loans/${encodeURIComponent(loanId)}` +
+            `/payment-plans/${encodeURIComponent(plan.id)}`,
+          onSuccess: () => loadDetails(),
+        });
+
+        const actions = document.createElement("div");
+        actions.className = "mt-auto flex items-end justify-between gap-3";
+        actions.append(detailsLink, deleteButton);
+
+        body.append(name, duration, id, actions);
         card.appendChild(body);
         return card;
       }
