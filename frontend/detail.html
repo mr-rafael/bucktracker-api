@@ -21,7 +21,32 @@
         <p id="detail-type" class="mb-1 text-sm font-semibold uppercase tracking-wider text-primary">
           Plan details
         </p>
-        <h1 id="detail-title" class="break-words text-3xl font-bold sm:text-4xl">Loading...</h1>
+        <div id="detail-title-row" class="flex items-start gap-3">
+          <h1 id="detail-title" class="break-words text-3xl font-bold sm:text-4xl">Loading...</h1>
+          <button
+            id="edit-name-button"
+            type="button"
+            class="btn btn-ghost btn-square btn-sm mt-1 hidden shrink-0 text-base-content/40 hover:text-base-content"
+            aria-label="Edit name"
+            title="Edit name"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke-width="1.8"
+              stroke="currentColor"
+              class="size-5"
+              aria-hidden="true"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897z"
+              />
+            </svg>
+          </button>
+        </div>
       </header>
 
       <div id="detail-status" class="alert" role="status" aria-live="polite">
@@ -160,6 +185,383 @@
 
         return list;
       }
+
+      function parseDollars(value) {
+        const normalizedValue = String(value).replace(/[$,\s]/g, "");
+        if (!/^\d+(?:\.\d{0,2})?$/.test(normalizedValue)) {
+          return null;
+        }
+
+        const amount = Number(normalizedValue);
+        return Number.isFinite(amount) ? Math.round(amount * 100) : null;
+      }
+
+      function createPencilButton(label, onClick) {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className =
+          "btn btn-ghost btn-square btn-xs shrink-0 text-base-content/40 hover:bg-transparent hover:text-base-content";
+        button.setAttribute("aria-label", `Edit ${label}`);
+        button.title = `Edit ${label}`;
+        button.innerHTML = `
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke-width="1.8"
+            stroke="currentColor"
+            class="size-4"
+            aria-hidden="true"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897z"
+            />
+          </svg>
+        `;
+        button.addEventListener("click", onClick);
+        return button;
+      }
+
+      function attachCurrencyInput(input, cents) {
+        input.dataset.cents = String(cents);
+        input.addEventListener("focus", () => {
+          if (input.dataset.cents !== undefined) {
+            input.value = (Number(input.dataset.cents) / 100).toFixed(2);
+          }
+        });
+        input.addEventListener("input", () => {
+          const sanitizedValue = input.value
+            .replace(/[^\d.]/g, "")
+            .replace(/^(\d*\.?\d{0,2}).*$/, "$1");
+          input.value = sanitizedValue;
+          const parsedCents = parseDollars(sanitizedValue);
+          if (parsedCents === null) {
+            delete input.dataset.cents;
+          } else {
+            input.dataset.cents = String(parsedCents);
+          }
+          syncSavingsUpdateButton();
+        });
+        input.addEventListener("blur", () => {
+          if (input.dataset.cents !== undefined) {
+            input.value = formatters.dollars(input.dataset.cents);
+          }
+          syncSavingsUpdateButton();
+        });
+      }
+
+      function createSavingsFieldInput(field, rawValue) {
+        if (field === "interestRateType") {
+          const select = document.createElement("select");
+          select.className = "select select-bordered w-full max-w-xs";
+          ["APY", "APR"].forEach((optionValue) => {
+            const option = document.createElement("option");
+            option.value = optionValue;
+            option.textContent = optionValue;
+            if (optionValue === rawValue) {
+              option.selected = true;
+            }
+            select.appendChild(option);
+          });
+          return select;
+        }
+
+        const input = document.createElement("input");
+        input.className = "input input-bordered w-full max-w-xs";
+        input.autocomplete = "off";
+
+        if (monetaryFields.has(field)) {
+          input.type = "text";
+          input.inputMode = "decimal";
+          input.value = formatters.dollars(rawValue);
+          attachCurrencyInput(input, rawValue);
+          return input;
+        }
+
+        if (field === "durationYears") {
+          input.type = "number";
+          input.min = "1";
+          input.step = "1";
+          input.value = String(rawValue ?? "");
+          return input;
+        }
+
+        if (dateFields.has(field)) {
+          input.type = "date";
+          input.value = formatters.date(rawValue);
+          return input;
+        }
+
+        if (rateFields.has(field)) {
+          input.type = "text";
+          input.inputMode = "decimal";
+          input.value = String(rawValue ?? "");
+          return input;
+        }
+
+        input.type = "text";
+        input.value = rawValue == null ? "" : String(rawValue);
+        return input;
+      }
+
+      function readSavingsInputValue(field, input) {
+        if (monetaryFields.has(field)) {
+          return input.dataset.cents === undefined ? null : Number(input.dataset.cents);
+        }
+
+        if (field === "durationYears") {
+          const value = Number(input.value);
+          return Number.isInteger(value) ? value : null;
+        }
+
+        if (dateFields.has(field)) {
+          return input.value ? formatters.date(input.value) : null;
+        }
+
+        if (rateFields.has(field)) {
+          return input.value.trim().replace(/%$/, "");
+        }
+
+        return input.value.trim();
+      }
+
+      function savingsValuesEqual(field, current, original) {
+        if (current === null || current === undefined || current === "") {
+          return false;
+        }
+
+        if (monetaryFields.has(field) || field === "durationYears") {
+          return Number(current) === Number(original);
+        }
+
+        if (dateFields.has(field)) {
+          return String(current) === formatters.date(original);
+        }
+
+        return String(current) === String(original);
+      }
+
+      function getChangedSavingsPayload() {
+        const payload = {};
+        Object.entries(savingsEditor.inputs).forEach(([field, input]) => {
+          const current = readSavingsInputValue(field, input);
+          if (!savingsValuesEqual(field, current, savingsEditor.original[field])) {
+            if (current !== null && current !== "") {
+              payload[field] = current;
+            }
+          }
+        });
+        return payload;
+      }
+
+      function hasInvalidSavingsEdits() {
+        return Object.entries(savingsEditor.inputs).some(([field, input]) => {
+          const current = readSavingsInputValue(field, input);
+          return current === null || current === "";
+        });
+      }
+
+      function syncSavingsUpdateButton() {
+        if (!savingsEditor.updateButton) {
+          return;
+        }
+
+        const payload = getChangedSavingsPayload();
+        const invalid = hasInvalidSavingsEdits();
+        savingsEditor.updateButton.classList.toggle(
+          "hidden",
+          invalid || Object.keys(payload).length === 0,
+        );
+      }
+
+      function beginSavingsFieldEdit(field, rawValue, valueElement, pencil) {
+        if (savingsEditor.inputs[field]) {
+          return;
+        }
+
+        const input = createSavingsFieldInput(field, rawValue);
+        input.addEventListener("input", syncSavingsUpdateButton);
+        input.addEventListener("change", syncSavingsUpdateButton);
+        savingsEditor.inputs[field] = input;
+        valueElement.replaceChildren(input);
+        pencil.classList.add("hidden");
+        input.focus();
+        if (typeof input.select === "function" && input.tagName === "INPUT") {
+          input.select();
+        }
+        syncSavingsUpdateButton();
+      }
+
+      function beginSavingsNameEdit(rawValue) {
+        if (savingsEditor.inputs.name) {
+          return;
+        }
+
+        const input = createSavingsFieldInput("name", rawValue);
+        input.className =
+          "input input-bordered min-w-0 flex-1 text-3xl font-bold sm:text-4xl";
+        input.addEventListener("input", syncSavingsUpdateButton);
+        input.addEventListener("change", syncSavingsUpdateButton);
+        savingsEditor.inputs.name = input;
+        detailTitle.replaceWith(input);
+        document.getElementById("edit-name-button").classList.add("hidden");
+        input.focus();
+        input.select();
+        syncSavingsUpdateButton();
+      }
+
+      function createEditableSavingsLine(field, rawValue) {
+        const line = document.createElement("div");
+        line.className =
+          "grid gap-1 border-b border-base-300 px-5 py-4 last:border-b-0 sm:grid-cols-[minmax(12rem,1fr)_2fr] sm:gap-6";
+
+        const label = document.createElement("dt");
+        label.className = "font-medium text-base-content/65";
+        label.textContent = humanize(field);
+
+        const value = document.createElement("dd");
+        value.className = "flex items-center gap-2 break-words";
+
+        const valueText = document.createElement("span");
+        valueText.textContent = formatFieldValue(field, rawValue);
+        value.appendChild(valueText);
+
+        if (field !== "id") {
+          const pencil = createPencilButton(humanize(field), () => {
+            beginSavingsFieldEdit(field, rawValue, value, pencil);
+          });
+          value.appendChild(pencil);
+        }
+
+        line.append(label, value);
+        return line;
+      }
+
+      function showSavingsUpdateModal() {
+        const payload = getChangedSavingsPayload();
+        if (Object.keys(payload).length === 0) {
+          return;
+        }
+
+        const currentName =
+          savingsEditor.inputs.name
+            ? readSavingsInputValue("name", savingsEditor.inputs.name)
+            : savingsEditor.original.name;
+        const displayName = currentName || savingsEditor.original.name || "unnamed savings";
+
+        const dialog = document.createElement("dialog");
+        dialog.className = "modal";
+        dialog.innerHTML = `
+          <div class="modal-box">
+            <div data-confirm-content>
+              <h3 class="text-lg font-bold" data-confirm-message></h3>
+              <div data-error class="alert alert-error mt-4 hidden" role="alert">
+                <span></span>
+              </div>
+              <div class="modal-action" data-confirm-actions></div>
+            </div>
+            <div data-success-content class="hidden flex-col items-center gap-4 text-center">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                class="size-20 text-success"
+                aria-hidden="true"
+              >
+                <circle cx="12" cy="12" r="9"></circle>
+                <path stroke-linecap="round" stroke-linejoin="round" d="m8 12 2.5 2.5L16.5 9"></path>
+              </svg>
+              <p class="text-lg font-bold">Update successful!</p>
+              <div class="modal-action justify-center">
+                <button type="button" class="btn btn-primary" data-ok>OK</button>
+              </div>
+            </div>
+          </div>
+          <form method="dialog" class="modal-backdrop">
+            <button>close</button>
+          </form>
+        `;
+        document.body.appendChild(dialog);
+        dialog.querySelector("[data-confirm-message]").textContent =
+          `Update savings data for ${displayName}?`;
+
+        let reloadOnClose = false;
+        const errorAlert = dialog.querySelector("[data-error]");
+        const updateButton = document.createElement("button");
+        updateButton.type = "button";
+        updateButton.className = "btn btn-primary";
+        updateButton.textContent = "Update";
+        const cancelButton = document.createElement("button");
+        cancelButton.type = "button";
+        cancelButton.className = "btn btn-ghost";
+        cancelButton.textContent = "Cancel";
+
+        cancelButton.addEventListener("click", () => dialog.close());
+        dialog.querySelector("[data-ok]").addEventListener("click", () => dialog.close());
+        dialog.addEventListener("close", () => {
+          dialog.remove();
+          if (reloadOnClose) {
+            window.location.reload();
+          }
+        });
+
+        updateButton.addEventListener("click", async () => {
+          errorAlert.classList.add("hidden");
+          updateButton.disabled = true;
+          updateButton.textContent = "Updating...";
+
+          try {
+            const response = await authenticatedApi.fetch(
+              `${API_BASE_URL}/app/savings/${encodeURIComponent(id)}`,
+              {
+                method: "PATCH",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify(payload),
+              },
+            );
+
+            if (!response.ok) {
+              errorAlert.querySelector("span").textContent =
+                await apiErrors.formatResponse(response);
+              errorAlert.classList.remove("hidden");
+              return;
+            }
+
+            reloadOnClose = true;
+            dialog.querySelector("[data-confirm-content]").classList.add("hidden");
+            dialog.querySelector("[data-success-content]").classList.remove("hidden");
+            dialog.querySelector("[data-success-content]").classList.add("flex");
+          } catch (error) {
+            if (authenticatedApi.isRedirectError(error)) {
+              return;
+            }
+
+            errorAlert.querySelector("span").textContent =
+              error.isBackendResponse || error.isInvalidResponse
+                ? error.message
+                : apiErrors.formatNetworkError(error);
+            errorAlert.classList.remove("hidden");
+          } finally {
+            updateButton.disabled = false;
+            updateButton.textContent = "Update";
+          }
+        });
+
+        dialog.querySelector("[data-confirm-actions]").append(cancelButton, updateButton);
+        dialog.showModal();
+      }
+
+      const savingsEditor = {
+        original: {},
+        inputs: {},
+        updateButton: null,
+      };
 
       function createSection(titleText, content, action = null) {
         const section = document.createElement("section");
@@ -354,12 +756,39 @@
 
       function renderSavingsDetails(details) {
         const fragment = document.createDocumentFragment();
+        savingsEditor.original = {
+          name: details.name || "",
+          ...(details.originalData || {}),
+        };
+        savingsEditor.inputs = {};
+
         const information = {
           id: details.id,
           ...(details.originalData || {}),
         };
+        const informationList = document.createElement("dl");
+        informationList.className =
+          "overflow-hidden rounded-box border border-base-300 bg-base-100 shadow-sm";
+        Object.entries(information).forEach(([field, rawValue]) => {
+          informationList.appendChild(createEditableSavingsLine(field, rawValue));
+        });
 
-        fragment.appendChild(createSection("Information", createDefinitionList(information)));
+        const updateButton = document.createElement("button");
+        updateButton.type = "button";
+        updateButton.className = "btn btn-primary hidden";
+        updateButton.textContent = "Update";
+        updateButton.addEventListener("click", showSavingsUpdateModal);
+        savingsEditor.updateButton = updateButton;
+
+        const informationContent = document.createElement("div");
+        informationContent.className = "space-y-4";
+        informationContent.append(informationList, updateButton);
+
+        const editNameButton = document.getElementById("edit-name-button");
+        editNameButton.classList.remove("hidden");
+        editNameButton.onclick = () => beginSavingsNameEdit(details.name);
+
+        fragment.appendChild(createSection("Information", informationContent));
         fragment.appendChild(
           createSection(
             "Calculated Information",
