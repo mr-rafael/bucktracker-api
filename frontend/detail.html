@@ -242,17 +242,17 @@
           } else {
             input.dataset.cents = String(parsedCents);
           }
-          syncSavingsUpdateButton();
+          syncPlanUpdateButton();
         });
         input.addEventListener("blur", () => {
           if (input.dataset.cents !== undefined) {
             input.value = formatters.dollars(input.dataset.cents);
           }
-          syncSavingsUpdateButton();
+          syncPlanUpdateButton();
         });
       }
 
-      function createSavingsFieldInput(field, rawValue) {
+      function createPlanFieldInput(field, rawValue) {
         if (field === "interestRateType") {
           const select = document.createElement("select");
           select.className = "select select-bordered w-full max-w-xs";
@@ -306,7 +306,7 @@
         return input;
       }
 
-      function readSavingsInputValue(field, input) {
+      function readPlanInputValue(field, input) {
         if (monetaryFields.has(field)) {
           return input.dataset.cents === undefined ? null : Number(input.dataset.cents);
         }
@@ -327,7 +327,7 @@
         return input.value.trim();
       }
 
-      function savingsValuesEqual(field, current, original) {
+      function planValuesEqual(field, current, original) {
         if (current === null || current === undefined || current === "") {
           return false;
         }
@@ -343,11 +343,11 @@
         return String(current) === String(original);
       }
 
-      function getChangedSavingsPayload() {
+      function getChangedPlanPayload() {
         const payload = {};
-        Object.entries(savingsEditor.inputs).forEach(([field, input]) => {
-          const current = readSavingsInputValue(field, input);
-          if (!savingsValuesEqual(field, current, savingsEditor.original[field])) {
+        Object.entries(planEditor.inputs).forEach(([field, input]) => {
+          const current = readPlanInputValue(field, input);
+          if (!planValuesEqual(field, current, planEditor.original[field])) {
             if (current !== null && current !== "") {
               payload[field] = current;
             }
@@ -356,63 +356,63 @@
         return payload;
       }
 
-      function hasInvalidSavingsEdits() {
-        return Object.entries(savingsEditor.inputs).some(([field, input]) => {
-          const current = readSavingsInputValue(field, input);
+      function hasInvalidPlanEdits() {
+        return Object.entries(planEditor.inputs).some(([field, input]) => {
+          const current = readPlanInputValue(field, input);
           return current === null || current === "";
         });
       }
 
-      function syncSavingsUpdateButton() {
-        if (!savingsEditor.updateButton) {
+      function syncPlanUpdateButton() {
+        if (!planEditor.updateButton) {
           return;
         }
 
-        const payload = getChangedSavingsPayload();
-        const invalid = hasInvalidSavingsEdits();
-        savingsEditor.updateButton.classList.toggle(
+        const payload = getChangedPlanPayload();
+        const invalid = hasInvalidPlanEdits();
+        planEditor.updateButton.classList.toggle(
           "hidden",
           invalid || Object.keys(payload).length === 0,
         );
       }
 
-      function beginSavingsFieldEdit(field, rawValue, valueElement, pencil) {
-        if (savingsEditor.inputs[field]) {
+      function beginPlanFieldEdit(field, rawValue, valueElement, pencil) {
+        if (planEditor.inputs[field]) {
           return;
         }
 
-        const input = createSavingsFieldInput(field, rawValue);
-        input.addEventListener("input", syncSavingsUpdateButton);
-        input.addEventListener("change", syncSavingsUpdateButton);
-        savingsEditor.inputs[field] = input;
+        const input = createPlanFieldInput(field, rawValue);
+        input.addEventListener("input", syncPlanUpdateButton);
+        input.addEventListener("change", syncPlanUpdateButton);
+        planEditor.inputs[field] = input;
         valueElement.replaceChildren(input);
         pencil.classList.add("hidden");
         input.focus();
         if (typeof input.select === "function" && input.tagName === "INPUT") {
           input.select();
         }
-        syncSavingsUpdateButton();
+        syncPlanUpdateButton();
       }
 
-      function beginSavingsNameEdit(rawValue) {
-        if (savingsEditor.inputs.name) {
+      function beginPlanNameEdit(rawValue) {
+        if (planEditor.inputs.name) {
           return;
         }
 
-        const input = createSavingsFieldInput("name", rawValue);
+        const input = createPlanFieldInput("name", rawValue);
         input.className =
           "input input-bordered min-w-0 flex-1 text-3xl font-bold sm:text-4xl";
-        input.addEventListener("input", syncSavingsUpdateButton);
-        input.addEventListener("change", syncSavingsUpdateButton);
-        savingsEditor.inputs.name = input;
+        input.addEventListener("input", syncPlanUpdateButton);
+        input.addEventListener("change", syncPlanUpdateButton);
+        planEditor.inputs.name = input;
         detailTitle.replaceWith(input);
         document.getElementById("edit-name-button").classList.add("hidden");
         input.focus();
         input.select();
-        syncSavingsUpdateButton();
+        syncPlanUpdateButton();
       }
 
-      function createEditableSavingsLine(field, rawValue) {
+      function createEditablePlanLine(field, rawValue, editable) {
         const line = document.createElement("div");
         line.className =
           "grid gap-1 border-b border-base-300 px-5 py-4 last:border-b-0 sm:grid-cols-[minmax(12rem,1fr)_2fr] sm:gap-6";
@@ -428,9 +428,9 @@
         valueText.textContent = formatFieldValue(field, rawValue);
         value.appendChild(valueText);
 
-        if (field !== "id") {
+        if (editable) {
           const pencil = createPencilButton(humanize(field), () => {
-            beginSavingsFieldEdit(field, rawValue, value, pencil);
+            beginPlanFieldEdit(field, rawValue, value, pencil);
           });
           value.appendChild(pencil);
         }
@@ -439,17 +439,18 @@
         return line;
       }
 
-      function showSavingsUpdateModal() {
-        const payload = getChangedSavingsPayload();
+      function showPlanUpdateModal() {
+        const payload = getChangedPlanPayload();
         if (Object.keys(payload).length === 0) {
           return;
         }
 
         const currentName =
-          savingsEditor.inputs.name
-            ? readSavingsInputValue("name", savingsEditor.inputs.name)
-            : savingsEditor.original.name;
-        const displayName = currentName || savingsEditor.original.name || "unnamed savings";
+          planEditor.inputs.name
+            ? readPlanInputValue("name", planEditor.inputs.name)
+            : planEditor.original.name;
+        const displayName =
+          currentName || planEditor.original.name || `unnamed ${planEditor.kind}`;
 
         const dialog = document.createElement("dialog");
         dialog.className = "modal";
@@ -487,7 +488,7 @@
         `;
         document.body.appendChild(dialog);
         dialog.querySelector("[data-confirm-message]").textContent =
-          `Update savings data for ${displayName}?`;
+          `Update ${planEditor.kind} data for ${displayName}?`;
 
         let reloadOnClose = false;
         const errorAlert = dialog.querySelector("[data-error]");
@@ -515,16 +516,13 @@
           updateButton.textContent = "Updating...";
 
           try {
-            const response = await authenticatedApi.fetch(
-              `${API_BASE_URL}/app/savings/${encodeURIComponent(id)}`,
-              {
-                method: "PATCH",
-                headers: {
-                  "Content-Type": "application/json",
-                },
-                body: JSON.stringify(payload),
+            const response = await authenticatedApi.fetch(planEditor.endpoint, {
+              method: "PATCH",
+              headers: {
+                "Content-Type": "application/json",
               },
-            );
+              body: JSON.stringify(payload),
+            });
 
             if (!response.ok) {
               errorAlert.querySelector("span").textContent =
@@ -557,11 +555,72 @@
         dialog.showModal();
       }
 
-      const savingsEditor = {
+      function createEditableInformation(details, { kind, endpoint, editableFields }) {
+        planEditor.original = {
+          name: details.name || "",
+          ...(details.originalData || {}),
+        };
+        planEditor.inputs = {};
+        planEditor.kind = kind;
+        planEditor.endpoint = endpoint;
+
+        const information = {
+          id: details.id,
+          ...(details.originalData || {}),
+        };
+        const informationList = document.createElement("dl");
+        informationList.className =
+          "overflow-hidden rounded-box border border-base-300 bg-base-100 shadow-sm";
+        Object.entries(information).forEach(([field, rawValue]) => {
+          informationList.appendChild(
+            createEditablePlanLine(field, rawValue, editableFields.has(field)),
+          );
+        });
+
+        const updateButton = document.createElement("button");
+        updateButton.type = "button";
+        updateButton.className = "btn btn-primary hidden";
+        updateButton.textContent = "Update";
+        updateButton.addEventListener("click", showPlanUpdateModal);
+        planEditor.updateButton = updateButton;
+
+        const informationContent = document.createElement("div");
+        informationContent.className = "space-y-4";
+        informationContent.append(informationList, updateButton);
+
+        const editNameButton = document.getElementById("edit-name-button");
+        editNameButton.classList.remove("hidden");
+        editNameButton.onclick = () => beginPlanNameEdit(details.name);
+
+        return informationContent;
+      }
+
+      const planEditor = {
         original: {},
         inputs: {},
         updateButton: null,
+        kind: "",
+        endpoint: "",
       };
+
+      const savingsEditableFields = new Set([
+        "startingCapital",
+        "yearlyInterestRate",
+        "interestRateType",
+        "monthlyContribution",
+        "durationYears",
+        "taxRate",
+        "yearlyInflationRate",
+        "startDate",
+      ]);
+
+      const loanEditableFields = new Set([
+        "startingPrincipal",
+        "yearlyInterestRate",
+        "monthlyPayment",
+        "escrowPayment",
+        "startDate",
+      ]);
 
       function createSection(titleText, content, action = null) {
         const section = document.createElement("section");
@@ -699,12 +758,15 @@
 
       function renderLoanDetails(details) {
         const fragment = document.createDocumentFragment();
-        const loanInformation = {
-          id: details.id,
-          ...(details.originalData || {}),
-        };
         fragment.appendChild(
-          createSection("Loan Information", createDefinitionList(loanInformation)),
+          createSection(
+            "Loan Information",
+            createEditableInformation(details, {
+              kind: "loan",
+              endpoint: `${API_BASE_URL}/app/loans/${encodeURIComponent(id)}`,
+              editableFields: loanEditableFields,
+            }),
+          ),
         );
 
         const defaultPaymentPlan = details.defaultPaymentPlan || {};
@@ -756,39 +818,16 @@
 
       function renderSavingsDetails(details) {
         const fragment = document.createDocumentFragment();
-        savingsEditor.original = {
-          name: details.name || "",
-          ...(details.originalData || {}),
-        };
-        savingsEditor.inputs = {};
-
-        const information = {
-          id: details.id,
-          ...(details.originalData || {}),
-        };
-        const informationList = document.createElement("dl");
-        informationList.className =
-          "overflow-hidden rounded-box border border-base-300 bg-base-100 shadow-sm";
-        Object.entries(information).forEach(([field, rawValue]) => {
-          informationList.appendChild(createEditableSavingsLine(field, rawValue));
-        });
-
-        const updateButton = document.createElement("button");
-        updateButton.type = "button";
-        updateButton.className = "btn btn-primary hidden";
-        updateButton.textContent = "Update";
-        updateButton.addEventListener("click", showSavingsUpdateModal);
-        savingsEditor.updateButton = updateButton;
-
-        const informationContent = document.createElement("div");
-        informationContent.className = "space-y-4";
-        informationContent.append(informationList, updateButton);
-
-        const editNameButton = document.getElementById("edit-name-button");
-        editNameButton.classList.remove("hidden");
-        editNameButton.onclick = () => beginSavingsNameEdit(details.name);
-
-        fragment.appendChild(createSection("Information", informationContent));
+        fragment.appendChild(
+          createSection(
+            "Information",
+            createEditableInformation(details, {
+              kind: "savings",
+              endpoint: `${API_BASE_URL}/app/savings/${encodeURIComponent(id)}`,
+              editableFields: savingsEditableFields,
+            }),
+          ),
+        );
         fragment.appendChild(
           createSection(
             "Calculated Information",
