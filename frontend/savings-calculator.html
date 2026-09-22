@@ -3,44 +3,34 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Create Loan | BuckTracker</title>
+    <title>Savings Calculator | BuckTracker</title>
     <link href="https://cdn.jsdelivr.net/npm/daisyui@5" rel="stylesheet" type="text/css" />
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <script src="/api-errors.js"></script>
     <script src="/formatters.js"></script>
     <script src="/authenticated-api.js"></script>
+    <script src="/plan-display.js"></script>
   </head>
   <body class="min-h-screen bg-base-200">
-    <main class="mx-auto max-w-3xl p-6 sm:p-10">
-      <a href="/dashboard.html#loans" class="btn btn-ghost btn-sm mb-6">
-        ← Back to My Loans
+    <main class="mx-auto max-w-4xl p-6 sm:p-10">
+      <a href="/dashboard.html#savings" class="btn btn-ghost btn-sm mb-6">
+        ← Back to My Savings
       </a>
 
       <div class="card bg-base-100 shadow-xl">
         <div class="card-body gap-6">
           <header>
             <p class="mb-1 text-sm font-semibold uppercase tracking-wider text-primary">
-              New loan
+              Calculator
             </p>
-            <h1 class="text-3xl font-bold sm:text-4xl">Create a loan</h1>
+            <h1 class="text-3xl font-bold sm:text-4xl">Savings Calculator</h1>
           </header>
 
-          <form id="loan-form" class="grid gap-5 md:grid-cols-2">
-            <label class="form-control md:col-span-2">
-              <span class="label-text mb-2 font-medium">Name</span>
-              <input
-                name="name"
-                type="text"
-                class="input input-bordered w-full"
-                autocomplete="off"
-                required
-              />
-            </label>
-
+          <form id="savings-form" class="grid gap-5 md:grid-cols-2">
             <label class="form-control">
-              <span class="label-text mb-2 font-medium">Starting Principal</span>
+              <span class="label-text mb-2 font-medium">Starting Capital</span>
               <input
-                name="startingPrincipal"
+                name="startingCapital"
                 type="text"
                 inputmode="decimal"
                 class="input input-bordered w-full"
@@ -52,9 +42,9 @@
             </label>
 
             <label class="form-control">
-              <span class="label-text mb-2 font-medium">Monthly Payment</span>
+              <span class="label-text mb-2 font-medium">Monthly Contribution</span>
               <input
-                name="monthlyPayment"
+                name="monthlyContribution"
                 type="text"
                 inputmode="decimal"
                 class="input input-bordered w-full"
@@ -66,33 +56,78 @@
             </label>
 
             <label class="form-control">
-              <span class="label-text mb-2 font-medium">Other Payments</span>
-              <input
-                name="escrowPayment"
-                type="text"
-                inputmode="decimal"
-                class="input input-bordered w-full"
-                placeholder="$0.00"
-                autocomplete="off"
-                data-currency
-                required
-              />
-            </label>
-
-            <label class="form-control">
-              <span class="label-text mb-2 font-medium">Yearly Interest Rate (%)</span>
+              <span class="label-text mb-2 font-medium">Yearly Interest Rate</span>
               <input
                 name="yearlyInterestRate"
                 type="text"
                 inputmode="decimal"
                 pattern="[0-9]+(?:\.[0-9]+)?"
                 class="input input-bordered w-full"
-                placeholder="5.25"
+                placeholder="4.75"
                 required
               />
             </label>
 
-            <label class="form-control md:col-span-2">
+            <fieldset class="form-control">
+              <legend class="label-text mb-2 font-medium">Interest Rate Type</legend>
+              <div class="join">
+                <input
+                  type="radio"
+                  name="interestRateType"
+                  value="APY"
+                  class="btn join-item"
+                  aria-label="APY"
+                  checked
+                />
+                <input
+                  type="radio"
+                  name="interestRateType"
+                  value="APR"
+                  class="btn join-item"
+                  aria-label="APR"
+                />
+              </div>
+            </fieldset>
+
+            <label class="form-control">
+              <span class="label-text mb-2 font-medium">Tax Rate</span>
+              <input
+                name="taxRate"
+                type="text"
+                inputmode="decimal"
+                pattern="[0-9]+(?:\.[0-9]+)?"
+                class="input input-bordered w-full"
+                placeholder="0"
+                required
+              />
+            </label>
+
+            <label class="form-control">
+              <span class="label-text mb-2 font-medium">Yearly Inflation Rate</span>
+              <input
+                name="yearlyInflationRate"
+                type="text"
+                inputmode="decimal"
+                pattern="[0-9]+(?:\.[0-9]+)?"
+                class="input input-bordered w-full"
+                placeholder="0"
+                required
+              />
+            </label>
+
+            <label class="form-control">
+              <span class="label-text mb-2 font-medium">Duration Years</span>
+              <input
+                name="durationYears"
+                type="number"
+                min="1"
+                step="1"
+                class="input input-bordered w-full"
+                required
+              />
+            </label>
+
+            <label class="form-control">
               <span class="label-text mb-2 font-medium">Start Date</span>
               <input
                 name="startDate"
@@ -112,19 +147,22 @@
               class="btn btn-primary md:col-span-2"
               disabled
             >
-              Create loan
+              Calculate savings plan
             </button>
           </form>
         </div>
       </div>
+
+      <div id="calculator-results" class="mt-10 hidden space-y-8"></div>
     </main>
 
     <script>
       const API_BASE_URL = "http://localhost:8080";
-      const form = document.getElementById("loan-form");
+      const form = document.getElementById("savings-form");
       const submitButton = document.getElementById("submit-button");
       const errorAlert = document.getElementById("form-error");
       const errorMessage = document.getElementById("form-error-message");
+      const results = document.getElementById("calculator-results");
       const currencyInputs = form.querySelectorAll("[data-currency]");
 
       function parseDollars(value) {
@@ -153,7 +191,7 @@
 
       function updateSubmitButton() {
         const allFieldsHaveValues = [...form.elements]
-          .filter((element) => element.name)
+          .filter((element) => element.name && element.type !== "radio")
           .every((element) => element.value.trim() !== "");
         const currenciesAreValid = [...currencyInputs].every(
           (input) => input.dataset.cents !== undefined,
@@ -194,21 +232,23 @@
 
         errorAlert.classList.add("hidden");
         submitButton.disabled = true;
-        submitButton.textContent = "Creating...";
+        submitButton.textContent = "Calculating...";
 
         const formData = new FormData(form);
         const payload = {
-          name: formData.get("name").trim(),
-          startingPrincipal: Number(form.elements.startingPrincipal.dataset.cents),
+          startingCapital: Number(form.elements.startingCapital.dataset.cents),
           yearlyInterestRate: formData.get("yearlyInterestRate").trim(),
-          monthlyPayment: Number(form.elements.monthlyPayment.dataset.cents),
-          escrowPayment: Number(form.elements.escrowPayment.dataset.cents),
+          interestRateType: formData.get("interestRateType"),
+          monthlyContribution: Number(form.elements.monthlyContribution.dataset.cents),
+          durationYears: Number(formData.get("durationYears")),
+          taxRate: formData.get("taxRate").trim(),
+          yearlyInflationRate: formData.get("yearlyInflationRate").trim(),
           startDate: formatters.date(formData.get("startDate")),
         };
 
         try {
           const response = await authenticatedApi.fetch(
-            `${API_BASE_URL}/app/loans/save`,
+            `${API_BASE_URL}/app/savings/calculate`,
             {
               method: "POST",
               headers: {
@@ -233,16 +273,7 @@
             throw error;
           }
 
-          if (!responseBody.id) {
-            const error = new Error(
-              "INVALID_RESPONSE: The backend response did not include a loan ID.",
-            );
-            error.isInvalidResponse = true;
-            throw error;
-          }
-
-          sessionStorage.setItem("created_loan_response", JSON.stringify(responseBody));
-          window.location.assign("/loan-success.html");
+          planDisplay.renderSavingsResults(results, responseBody);
         } catch (error) {
           if (authenticatedApi.isRedirectError(error)) {
             return;
@@ -254,7 +285,7 @@
               : apiErrors.formatNetworkError(error);
           errorAlert.classList.remove("hidden");
         } finally {
-          submitButton.textContent = "Create loan";
+          submitButton.textContent = "Calculate savings plan";
           updateSubmitButton();
         }
       });

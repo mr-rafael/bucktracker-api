@@ -224,8 +224,11 @@
         return button;
       }
 
-      function attachCurrencyInput(input, cents) {
-        input.dataset.cents = String(cents);
+      function attachCurrencyInput(input, cents, onChange) {
+        const sync = typeof onChange === "function" ? onChange : syncPlanUpdateButton;
+        if (cents !== undefined && cents !== null && Number.isFinite(Number(cents))) {
+          input.dataset.cents = String(cents);
+        }
         input.addEventListener("focus", () => {
           if (input.dataset.cents !== undefined) {
             input.value = (Number(input.dataset.cents) / 100).toFixed(2);
@@ -242,13 +245,13 @@
           } else {
             input.dataset.cents = String(parsedCents);
           }
-          syncPlanUpdateButton();
+          sync();
         });
         input.addEventListener("blur", () => {
           if (input.dataset.cents !== undefined) {
             input.value = formatters.dollars(input.dataset.cents);
           }
-          syncPlanUpdateButton();
+          sync();
         });
       }
 
@@ -622,6 +625,369 @@
         "startDate",
       ]);
 
+      const paymentPlanEditor = {
+        originalName: "",
+        originalPayments: [],
+        nameInput: null,
+        rows: [],
+        saveButton: null,
+      };
+
+      function beginPaymentPlanNameEdit(rawValue) {
+        if (paymentPlanEditor.nameInput) {
+          return;
+        }
+
+        const input = createPlanFieldInput("name", rawValue);
+        input.className =
+          "input input-bordered min-w-0 flex-1 text-3xl font-bold sm:text-4xl";
+        input.addEventListener("input", syncPaymentPlanSaveButton);
+        input.addEventListener("change", syncPaymentPlanSaveButton);
+        paymentPlanEditor.nameInput = input;
+        detailTitle.replaceWith(input);
+        document.getElementById("edit-name-button").classList.add("hidden");
+        input.focus();
+        input.select();
+        syncPaymentPlanSaveButton();
+      }
+
+      function createPaymentDateInput(rawDate) {
+        const input = document.createElement("input");
+        input.type = "date";
+        input.className = "input input-bordered input-sm w-full max-w-[12rem]";
+        if (rawDate) {
+          input.value = formatters.date(rawDate);
+        }
+        input.addEventListener("input", syncPaymentPlanSaveButton);
+        input.addEventListener("change", syncPaymentPlanSaveButton);
+        return input;
+      }
+
+      function createPaymentAmountInput(cents) {
+        const input = document.createElement("input");
+        input.type = "text";
+        input.inputMode = "decimal";
+        input.className = "input input-bordered input-sm w-full max-w-[10rem]";
+        input.autocomplete = "off";
+        input.placeholder = "$0.00";
+        if (cents !== undefined && cents !== null && Number.isFinite(Number(cents))) {
+          input.value = formatters.dollars(cents);
+        }
+        attachCurrencyInput(input, cents, syncPaymentPlanSaveButton);
+        return input;
+      }
+
+      function readPaymentRowValue(row) {
+        if (!row.editing) {
+          return {
+            date: row.originalDate,
+            amount: row.originalAmount,
+          };
+        }
+
+        return {
+          date: row.dateInput.value ? formatters.date(row.dateInput.value) : null,
+          amount:
+            row.amountInput.dataset.cents === undefined
+              ? null
+              : Number(row.amountInput.dataset.cents),
+        };
+      }
+
+      function paymentPlanPaymentsAreInvalid() {
+        return paymentPlanEditor.rows.some((row) => {
+          if (!row.editing) {
+            return false;
+          }
+
+          const current = readPaymentRowValue(row);
+          return current.date === null || current.amount === null;
+        });
+      }
+
+      function paymentPlanPaymentsChanged() {
+        if (paymentPlanEditor.rows.length !== paymentPlanEditor.originalPayments.length) {
+          return true;
+        }
+
+        return paymentPlanEditor.rows.some((row, index) => {
+          const current = readPaymentRowValue(row);
+          const original = paymentPlanEditor.originalPayments[index];
+          return current.date !== original.date || Number(current.amount) !== Number(original.amount);
+        });
+      }
+
+      function paymentPlanNameChanged() {
+        if (!paymentPlanEditor.nameInput) {
+          return false;
+        }
+
+        return paymentPlanEditor.nameInput.value.trim() !== paymentPlanEditor.originalName;
+      }
+
+      function getPaymentPlanPayload() {
+        const payload = {};
+        if (paymentPlanNameChanged()) {
+          const name = paymentPlanEditor.nameInput.value.trim();
+          if (name) {
+            payload.name = name;
+          }
+        }
+
+        if (paymentPlanPaymentsChanged()) {
+          payload.principalPayments = paymentPlanEditor.rows.map((row) => {
+            const payment = readPaymentRowValue(row);
+            return {
+              date: payment.date,
+              amount: payment.amount,
+            };
+          });
+        }
+
+        return payload;
+      }
+
+      function syncPaymentPlanSaveButton() {
+        if (!paymentPlanEditor.saveButton) {
+          return;
+        }
+
+        const payload = getPaymentPlanPayload();
+        const invalid =
+          paymentPlanPaymentsAreInvalid() ||
+          (paymentPlanNameChanged() && !paymentPlanEditor.nameInput.value.trim());
+        paymentPlanEditor.saveButton.classList.toggle(
+          "hidden",
+          invalid ||
+            (!paymentPlanNameChanged() && !paymentPlanPaymentsChanged()) ||
+            Object.keys(payload).length === 0,
+        );
+      }
+
+      function beginPaymentRowEdit(row) {
+        if (row.editing) {
+          return;
+        }
+
+        row.editing = true;
+        row.dateInput = createPaymentDateInput(row.originalDate);
+        row.amountInput = createPaymentAmountInput(row.originalAmount);
+        row.dateCell.replaceChildren(row.dateInput);
+        row.amountCell.replaceChildren(row.amountInput);
+        row.pencil.classList.add("hidden");
+        row.dateInput.focus();
+        syncPaymentPlanSaveButton();
+      }
+
+      function appendPaymentRow(payment = null) {
+        const isNew = payment === null;
+        const row = {
+          editing: isNew,
+          originalDate: isNew ? null : formatters.date(payment.date),
+          originalAmount: isNew ? null : Number(payment.amount),
+          dateInput: null,
+          amountInput: null,
+          dateCell: document.createElement("td"),
+          amountCell: document.createElement("td"),
+          pencil: null,
+        };
+
+        const tableRow = document.createElement("tr");
+        if (isNew) {
+          row.dateInput = createPaymentDateInput("");
+          row.amountInput = createPaymentAmountInput(null);
+          row.dateCell.appendChild(row.dateInput);
+          row.amountCell.appendChild(row.amountInput);
+        } else {
+          row.dateCell.textContent = formatFieldValue("date", row.originalDate);
+          row.amountCell.textContent = formatFieldValue("amount", row.originalAmount);
+          row.pencil = createPencilButton("principal payment", () => {
+            beginPaymentRowEdit(row);
+          });
+          const actionCell = document.createElement("td");
+          actionCell.className = "w-12 text-right";
+          actionCell.appendChild(row.pencil);
+          tableRow.append(row.dateCell, row.amountCell, actionCell);
+          paymentPlanEditor.tbody.appendChild(tableRow);
+          paymentPlanEditor.rows.push(row);
+          return;
+        }
+
+        const actionCell = document.createElement("td");
+        actionCell.className = "w-12";
+        tableRow.append(row.dateCell, row.amountCell, actionCell);
+        paymentPlanEditor.tbody.appendChild(tableRow);
+        paymentPlanEditor.rows.push(row);
+        if (isNew) {
+          row.dateInput.focus();
+          syncPaymentPlanSaveButton();
+        }
+      }
+
+      function createPrincipalPaymentsEditor(payments) {
+        paymentPlanEditor.rows = [];
+        paymentPlanEditor.originalPayments = (Array.isArray(payments) ? payments : []).map(
+          (payment) => ({
+            date: formatters.date(payment.date),
+            amount: Number(payment.amount),
+          }),
+        );
+
+        const wrapper = document.createElement("div");
+        wrapper.className = "space-y-4";
+
+        const tableWrapper = document.createElement("div");
+        tableWrapper.className =
+          "overflow-x-auto rounded-box border border-base-300 bg-base-100 shadow-sm";
+        const table = document.createElement("table");
+        table.className = "table table-zebra";
+        const head = document.createElement("thead");
+        const headerRow = document.createElement("tr");
+        ["Date", "Amount", ""].forEach((label) => {
+          const header = document.createElement("th");
+          header.textContent = label;
+          headerRow.appendChild(header);
+        });
+        head.appendChild(headerRow);
+        paymentPlanEditor.tbody = document.createElement("tbody");
+        table.append(head, paymentPlanEditor.tbody);
+        tableWrapper.appendChild(table);
+
+        paymentPlanEditor.originalPayments.forEach((payment) => {
+          appendPaymentRow(payment);
+        });
+
+        const addButton = document.createElement("button");
+        addButton.type = "button";
+        addButton.className = "btn btn-outline";
+        addButton.textContent = "add more payments";
+        addButton.addEventListener("click", () => appendPaymentRow());
+
+        const saveButton = document.createElement("button");
+        saveButton.type = "button";
+        saveButton.className = "btn btn-primary hidden";
+        saveButton.textContent = "Save changes";
+        saveButton.addEventListener("click", showPaymentPlanUpdateModal);
+        paymentPlanEditor.saveButton = saveButton;
+
+        const actions = document.createElement("div");
+        actions.className = "flex flex-wrap items-center justify-between gap-3";
+        actions.append(addButton, saveButton);
+
+        wrapper.append(tableWrapper, actions);
+        return wrapper;
+      }
+
+      function showPaymentPlanUpdateModal() {
+        const payload = getPaymentPlanPayload();
+        if (Object.keys(payload).length === 0) {
+          return;
+        }
+
+        const dialog = document.createElement("dialog");
+        dialog.className = "modal";
+        dialog.innerHTML = `
+          <div class="modal-box">
+            <div data-confirm-content>
+              <h3 class="text-lg font-bold">Update loan payment plan?</h3>
+              <div data-error class="alert alert-error mt-4 hidden" role="alert">
+                <span></span>
+              </div>
+              <div class="modal-action" data-confirm-actions></div>
+            </div>
+            <div data-success-content class="hidden flex-col items-center gap-4 text-center">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                class="size-20 text-success"
+                aria-hidden="true"
+              >
+                <circle cx="12" cy="12" r="9"></circle>
+                <path stroke-linecap="round" stroke-linejoin="round" d="m8 12 2.5 2.5L16.5 9"></path>
+              </svg>
+              <p class="text-lg font-bold">Payment Plan updated!</p>
+              <div class="modal-action justify-center">
+                <button type="button" class="btn btn-primary" data-ok>OK</button>
+              </div>
+            </div>
+          </div>
+          <form method="dialog" class="modal-backdrop">
+            <button>close</button>
+          </form>
+        `;
+        document.body.appendChild(dialog);
+
+        let reloadOnClose = false;
+        const errorAlert = dialog.querySelector("[data-error]");
+        const yesButton = document.createElement("button");
+        yesButton.type = "button";
+        yesButton.className = "btn btn-primary";
+        yesButton.textContent = "Yes";
+        const cancelButton = document.createElement("button");
+        cancelButton.type = "button";
+        cancelButton.className = "btn btn-ghost";
+        cancelButton.textContent = "Cancel";
+
+        cancelButton.addEventListener("click", () => dialog.close());
+        dialog.querySelector("[data-ok]").addEventListener("click", () => dialog.close());
+        dialog.addEventListener("close", () => {
+          dialog.remove();
+          if (reloadOnClose) {
+            window.location.reload();
+          }
+        });
+
+        yesButton.addEventListener("click", async () => {
+          errorAlert.classList.add("hidden");
+          yesButton.disabled = true;
+          yesButton.textContent = "Updating...";
+
+          try {
+            const response = await authenticatedApi.fetch(
+              `${API_BASE_URL}/app/loans/${encodeURIComponent(loanId)}/payment-plans/${encodeURIComponent(id)}`,
+              {
+                method: "PATCH",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify(payload),
+              },
+            );
+
+            if (!response.ok) {
+              errorAlert.querySelector("span").textContent =
+                await apiErrors.formatResponse(response);
+              errorAlert.classList.remove("hidden");
+              return;
+            }
+
+            reloadOnClose = true;
+            dialog.querySelector("[data-confirm-content]").classList.add("hidden");
+            dialog.querySelector("[data-success-content]").classList.remove("hidden");
+            dialog.querySelector("[data-success-content]").classList.add("flex");
+          } catch (error) {
+            if (authenticatedApi.isRedirectError(error)) {
+              return;
+            }
+
+            errorAlert.querySelector("span").textContent =
+              error.isBackendResponse || error.isInvalidResponse
+                ? error.message
+                : apiErrors.formatNetworkError(error);
+            errorAlert.classList.remove("hidden");
+          } finally {
+            yesButton.disabled = false;
+            yesButton.textContent = "Yes";
+          }
+        });
+
+        dialog.querySelector("[data-confirm-actions]").append(cancelButton, yesButton);
+        dialog.showModal();
+      }
+
       function createSection(titleText, content, action = null) {
         const section = document.createElement("section");
         const title = document.createElement("h2");
@@ -858,6 +1224,12 @@
           ...paymentPlanInformation
         } = details;
 
+        paymentPlanEditor.originalName = details.name || "";
+        paymentPlanEditor.nameInput = null;
+        const editNameButton = document.getElementById("edit-name-button");
+        editNameButton.classList.remove("hidden");
+        editNameButton.onclick = () => beginPaymentPlanNameEdit(details.name);
+
         fragment.appendChild(
           createSection(
             "Payment Plan Information",
@@ -867,10 +1239,7 @@
         fragment.appendChild(
           createSection(
             "Principal Payments",
-            createDataTable(
-              principalPayments,
-              "No principal payments were returned by the backend.",
-            ),
+            createPrincipalPaymentsEditor(principalPayments),
           ),
         );
         fragment.appendChild(

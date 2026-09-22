@@ -3,15 +3,16 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Create Loan | BuckTracker</title>
+    <title>Loans Calculator | BuckTracker</title>
     <link href="https://cdn.jsdelivr.net/npm/daisyui@5" rel="stylesheet" type="text/css" />
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <script src="/api-errors.js"></script>
     <script src="/formatters.js"></script>
     <script src="/authenticated-api.js"></script>
+    <script src="/plan-display.js"></script>
   </head>
   <body class="min-h-screen bg-base-200">
-    <main class="mx-auto max-w-3xl p-6 sm:p-10">
+    <main class="mx-auto max-w-4xl p-6 sm:p-10">
       <a href="/dashboard.html#loans" class="btn btn-ghost btn-sm mb-6">
         ← Back to My Loans
       </a>
@@ -20,23 +21,12 @@
         <div class="card-body gap-6">
           <header>
             <p class="mb-1 text-sm font-semibold uppercase tracking-wider text-primary">
-              New loan
+              Calculator
             </p>
-            <h1 class="text-3xl font-bold sm:text-4xl">Create a loan</h1>
+            <h1 class="text-3xl font-bold sm:text-4xl">Loans Calculator</h1>
           </header>
 
           <form id="loan-form" class="grid gap-5 md:grid-cols-2">
-            <label class="form-control md:col-span-2">
-              <span class="label-text mb-2 font-medium">Name</span>
-              <input
-                name="name"
-                type="text"
-                class="input input-bordered w-full"
-                autocomplete="off"
-                required
-              />
-            </label>
-
             <label class="form-control">
               <span class="label-text mb-2 font-medium">Starting Principal</span>
               <input
@@ -112,11 +102,13 @@
               class="btn btn-primary md:col-span-2"
               disabled
             >
-              Create loan
+              Calculate loan
             </button>
           </form>
         </div>
       </div>
+
+      <div id="calculator-results" class="mt-10 hidden space-y-8"></div>
     </main>
 
     <script>
@@ -125,6 +117,7 @@
       const submitButton = document.getElementById("submit-button");
       const errorAlert = document.getElementById("form-error");
       const errorMessage = document.getElementById("form-error-message");
+      const results = document.getElementById("calculator-results");
       const currencyInputs = form.querySelectorAll("[data-currency]");
 
       function parseDollars(value) {
@@ -194,11 +187,10 @@
 
         errorAlert.classList.add("hidden");
         submitButton.disabled = true;
-        submitButton.textContent = "Creating...";
+        submitButton.textContent = "Calculating...";
 
         const formData = new FormData(form);
         const payload = {
-          name: formData.get("name").trim(),
           startingPrincipal: Number(form.elements.startingPrincipal.dataset.cents),
           yearlyInterestRate: formData.get("yearlyInterestRate").trim(),
           monthlyPayment: Number(form.elements.monthlyPayment.dataset.cents),
@@ -208,7 +200,7 @@
 
         try {
           const response = await authenticatedApi.fetch(
-            `${API_BASE_URL}/app/loans/save`,
+            `${API_BASE_URL}/app/loans/calculate`,
             {
               method: "POST",
               headers: {
@@ -233,16 +225,7 @@
             throw error;
           }
 
-          if (!responseBody.id) {
-            const error = new Error(
-              "INVALID_RESPONSE: The backend response did not include a loan ID.",
-            );
-            error.isInvalidResponse = true;
-            throw error;
-          }
-
-          sessionStorage.setItem("created_loan_response", JSON.stringify(responseBody));
-          window.location.assign("/loan-success.html");
+          planDisplay.renderLoanResults(results, responseBody);
         } catch (error) {
           if (authenticatedApi.isRedirectError(error)) {
             return;
@@ -254,7 +237,7 @@
               : apiErrors.formatNetworkError(error);
           errorAlert.classList.remove("hidden");
         } finally {
-          submitButton.textContent = "Create loan";
+          submitButton.textContent = "Calculate Loan";
           updateSubmitButton();
         }
       });
