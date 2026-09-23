@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>BuckTracker</title>
+    <title>Welcome to Bucktracker</title>
     <link href="https://cdn.jsdelivr.net/npm/daisyui@5" rel="stylesheet" type="text/css" />
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <script src="/api-errors.js"></script>
@@ -11,13 +11,21 @@
   <body class="min-h-screen bg-base-200 flex items-center justify-center p-6">
     <main class="card w-full max-w-md bg-base-100 shadow-xl">
       <div class="card-body items-center text-center gap-4">
-        <h1 class="card-title text-3xl">Hello World</h1>
+        <h1 class="card-title text-3xl">Welcome to Bucktracker</h1>
         <p class="text-base-content/70">
           BuckTracker is ready. Click below to check the API health endpoint.
         </p>
         <div class="card-actions">
-          <button id="check-backend" class="btn btn-primary">Check backend</button>
-          <a href="/login.html" class="btn btn-outline">Log in</a>
+          <button id="check-backend" class="btn btn-outline">Check backend</button>
+          <a href="/login.html" class="btn btn-primary">Log in</a>
+        </div>
+        <div class="card-actions">
+          <a href="/loan-calculator.html?from=welcome" class="btn btn-primary">
+            Loan Calculator
+          </a>
+          <a href="/savings-calculator.html?from=welcome" class="btn btn-primary">
+            Savings Calculator
+          </a>
         </div>
         <p id="backend-result" class="text-sm text-base-content/80 min-h-6"></p>
       </div>
