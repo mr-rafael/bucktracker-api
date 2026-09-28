@@ -66,6 +66,95 @@ To stop the stack:
 docker compose down
 ```
 
+# Using the App
+
+Access the app at: [http://localhost:3000](http://localhost:3000). You will be shown a Welcome screen:
+
+<img src="docs/media/welcome_screen.png" alt="Welcome screen" width="500">
+
+You can check if the backend is running at the Welcome Page.
+
+## Using the Calculators
+
+You can navigate to the loan and savings calculators without having a user, from the Welcome screen.
+
+### Savings Calculator
+
+<img src="docs/media/savings_calculator_1.png" alt="Savings Calculator Input" width="500">
+
+The savings calculator allows you to calculate your savings in an account after a determined period. You can specify the following fields:
+
+| Field | Description |
+| ----------- | ----------- |
+| Starting Capital | The amount in your account at the beginning of the term. |
+| Monthly Contribution | The monthly amount you will deposit in the account (can be 0). |
+| Yearly Interest Rate | The yearly interest rate of your account. |
+| Interest Rate Type | Banks normally provide the yearly interest rate as APY (Annual Percentage Yield), but in case it gives an APR (Annual Percentage Rate), you can set it here. |
+| Tax Rate | You can include an Income Tax Rate in the calculation. You can leave it as 0 to ignore it. |
+| Yearly Inflation Rate | You can include a Yearly Inflation Rate in the calculation, to see the real growth of your savings. You can leave it as 0 to ignore it. |
+| Duration Years | The duration of the term you wish to calculate for. |
+| Start Date | The start date of the savings investment. |
+
+Clicking on Calculate Savings Plan will run calculations and return the following information:
+
+<img src="docs/media/savings_calculator_2.png" alt="Savings Calculator Output" width="500">
+
+| Field | Description |
+| ----------- | ----------- |
+| Monthly Interest Rate | The yearly interest rate you entered, converted to a monthly one. This is used in the actual month-to-month interest calculations. |
+| Total Interest Earnings | The sum of all the interest amounts generated during the period. |
+| Total Deposited | The sum of all the deposits you made during the period, including the initial deposit. |
+| Rate of Return | Your total savings at the end of the period divided by the total deposited as a percent. |
+| Inflation Adjusted Rate of Return | How much your savings really grew, when considering the inflation you entered. |
+
+Additionally, it will generate a month-to-month status report of your savings account, with the following fields:
+
+| Field | Description |
+| ----------- | ----------- |
+| Date | The date of the status. |
+| Interest | The interest earned that month. |
+| Tax | The taxes deducted from the interest profits that month. |
+| Contribution | The amount you will deposit that month. |
+| Increase | By how much your savings increased that month. |
+| Capital | The total on your account at the end of that month. |
+
+### Loans Calculator
+
+<img src="docs/media/loan_calculator_1.png" alt="Loans Calculator Input" width="500">
+
+The loans calculator allows you to calculate the duration of a loan, and some other details, based on the following fields:
+
+| Field | Description |
+| ----------- | ----------- |
+| Starting Principal | The principal of the loan at the start of the loan. |
+| Monthly Payment | The monthly payments you  will make. |
+| Other Payments | Total amount included in your monthly payments that doesn't go to interest or principal. For example, insurances, taxes, etc. |
+| Yearly Interest Rate | The yearly interest rate (APR) of your loan. |
+| Start Date | The start date of the loan. |
+
+Clicking on Calculate loan will run calculations and return the following information:
+
+<img src="docs/media/loan_calculator_2.png" alt="Loans Calculator Output" width="500">
+
+| Field | Description |
+| ----------- | ----------- |
+| Starting Principal | The principal of the loan at the start of the loan. |
+| Monthly Payment | The monthly payments you  will make. |
+| Other Payments | Total amount included in your monthly payments that doesn't go to interest or principal. For example, insurances, taxes, etc. |
+| Yearly Interest Rate | The yearly interest rate (APR) of your loan. |
+| Start Date | The start date of the loan. |
+
+Additionally, it will generate a month-to-month status report of your loan, with the following fields:
+
+| Field | Description |
+| ----------- | ----------- |
+| Date | The date of the status. |
+| Payment | The payment made that month. |
+| Interest | The interest charged that month. |
+| Other Payments | The amount of the payment that went into other payments (not interest or principal). |
+| Paydown | The amount paid directly to principal. |
+| Paydown | The remaining principal at the end of the month. |
+
 ## Contributing
 
 ### Clone the repo
