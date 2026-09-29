@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="corporate">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Create New Account | BuckTracker</title>
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@5" rel="stylesheet" type="text/css" />
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script src="/api-errors.js"></script>
+  </head>
+  <body class="flex min-h-screen items-center justify-center bg-base-200 p-6">
+    <main class="card w-full max-w-md bg-base-100 shadow-xl">
+      <div class="card-body gap-5">
+        <div>
+          <p class="mb-1 text-sm font-semibold uppercase tracking-wider text-primary">
+            New account
+          </p>
+          <h1 class="card-title text-3xl">Create New Account</h1>
+          <p class="mt-2 text-base-content/70">
+            Enter an email, password, and username to create your account.
+          </p>
+        </div>
+
+        <form id="create-account-form" class="flex flex-col gap-4">
+          <label class="form-control">
+            <span class="label-text mb-2 font-medium">Email</span>
+            <input
+              id="email"
+              name="email"
+              type="email"
+              autocomplete="email"
+              class="input input-bordered w-full"
+              required
+            />
+          </label>
+
+          <label class="form-control">
+            <span class="label-text mb-2 font-medium">Password</span>
+            <input
+              id="password"
+              name="password"
+              type="password"
+              autocomplete="new-password"
+              class="input input-bordered w-full"
+              required
+            />
+          </label>
+
+          <label class="form-control">
+            <span class="label-text mb-2 font-medium">Username</span>
+            <input
+              id="username"
+              name="username"
+              type="text"
+              autocomplete="username"
+              class="input input-bordered w-full"
+              required
+            />
+          </label>
+
+          <button id="create-button" type="submit" class="btn btn-primary w-full">
+            Create User
+          </button>
+        </form>
+
+        <div id="create-error" class="alert alert-error hidden" role="alert">
+          <span id="create-error-message"></span>
+        </div>
+
+        <a href="/login.html" class="btn btn-ghost btn-sm self-start">Back to login</a>
+      </div>
+    </main>
+
+    <script>
+      const form = document.getElementById("create-account-form");
+      const createButton = document.getElementById("create-button");
+      const errorCard = document.getElementById("create-error");
+      const errorMessage = document.getElementById("create-error-message");
+
+      form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        errorCard.classList.add("hidden");
+        createButton.disabled = true;
+        createButton.textContent = "Creating...";
+
+        const formData = new FormData(form);
+        const username = formData.get("username").trim();
+        const payload = {
+          email: formData.get("email").trim(),
+          password: formData.get("password"),
+          username,
+        };
+
+        try {
+          const response = await fetch("http://localhost:8080/app/users/create", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(payload),
+          });
+
+          if (!response.ok) {
+            errorMessage.textContent = await apiErrors.formatResponse(response);
+            errorCard.classList.remove("hidden");
+            return;
+          }
+
+          let responseBody;
+          try {
+            responseBody = await response.json();
+          } catch (error) {
+            error.message = `INVALID_RESPONSE: ${error.message}`;
+            error.isInvalidResponse = true;
+            throw error;
+          }
+
+          sessionStorage.setItem("created_user_response", JSON.stringify(responseBody));
+          sessionStorage.setItem("created_user_name", username);
+          window.location.assign("/create-account-success.html");
+        } catch (error) {
+          errorMessage.textContent = error.isInvalidResponse
+            ? error.message
+            : apiErrors.formatNetworkError(error);
+          errorCard.classList.remove("hidden");
+        } finally {
+          createButton.disabled = false;
+          createButton.textContent = "Create User";
+        }
+      });
+    </script>
+  </body>
+</html>

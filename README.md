@@ -68,9 +68,14 @@ docker compose down
 
 # Using the App
 
-Access the app at: [http://localhost:3000](http://localhost:3000). You will be shown a Welcome screen:
+Access the app at: [http://localhost:3000](http://localhost:3000). You will be shown a **Welcome screen**:
 
-<img src="docs/media/welcome_screen.png" alt="Welcome screen" width="500">
+<figure style="text-align: center;">
+  <img src="docs/media/welcome_screen.png" alt="Welcome screen" width="500">
+  <figcaption style="font-style: italic; color: #555; margin-top: 8px;">
+    Welcome screen
+  </figcaption>
+</figure>
 
 You can check if the backend is running at the Welcome Page.
 
@@ -80,9 +85,14 @@ You can navigate to the loan and savings calculators without having a user, from
 
 ### Savings Calculator
 
-<img src="docs/media/savings_calculator_1.png" alt="Savings Calculator Input" width="500">
+<figure style="text-align: center;">
+  <img src="docs/media/savings_calculator_1.png" alt="Savings Calculator Input" width="500">
+  <figcaption style="font-style: italic; color: #555; margin-top: 8px;">
+    Savings Calculator Input
+  </figcaption>
+</figure>
 
-The savings calculator allows you to calculate your savings in an account after a determined period. You can specify the following fields:
+The **savings calculator** allows you to calculate your savings in an account after a determined period. You can specify the following fields:
 
 | Field | Description |
 | ----------- | ----------- |
@@ -95,9 +105,14 @@ The savings calculator allows you to calculate your savings in an account after 
 | Duration Years | The duration of the term you wish to calculate for. |
 | Start Date | The start date of the savings investment. |
 
-Clicking on Calculate Savings Plan will run calculations and return the following information:
+Clicking on **Calculate Savings Plan** will run calculations and return the following information:
 
-<img src="docs/media/savings_calculator_2.png" alt="Savings Calculator Output" width="500">
+<figure style="text-align: center;">
+  <img src="docs/media/savings_calculator_2.png" alt="Savings Calculator Output" width="500">
+  <figcaption style="font-style: italic; color: #555; margin-top: 8px;">
+    Savings Calculator Output
+  </figcaption>
+</figure>
 
 | Field | Description |
 | ----------- | ----------- |
@@ -120,7 +135,12 @@ Additionally, it will generate a month-to-month status report of your savings ac
 
 ### Loans Calculator
 
-<img src="docs/media/loan_calculator_1.png" alt="Loans Calculator Input" width="500">
+<figure style="text-align: center;">
+  <img src="docs/media/loan_calculator_1.png" alt="Loans Calculator Input" width="500">
+  <figcaption style="font-style: italic; color: #555; margin-top: 8px;">
+    Loans Calculator Input
+  </figcaption>
+</figure>
 
 The loans calculator allows you to calculate the duration of a loan, and some other details, based on the following fields:
 
@@ -132,9 +152,14 @@ The loans calculator allows you to calculate the duration of a loan, and some ot
 | Yearly Interest Rate | The yearly interest rate (APR) of your loan. |
 | Start Date | The start date of the loan. |
 
-Clicking on Calculate loan will run calculations and return the following information:
+Clicking on **Calculate loan** will run calculations and return the following information:
 
-<img src="docs/media/loan_calculator_2.png" alt="Loans Calculator Output" width="500">
+<figure style="text-align: center;">
+  <img src="docs/media/loan_calculator_2.png" alt="Loans Calculator Output" width="500">
+  <figcaption style="font-style: italic; color: #555; margin-top: 8px;">
+    Loans Calculator Output
+  </figcaption>
+</figure>
 
 | Field | Description |
 | ----------- | ----------- |
@@ -154,6 +179,62 @@ Additionally, it will generate a month-to-month status report of your loan, with
 | Other Payments | The amount of the payment that went into other payments (not interest or principal). |
 | Paydown | The amount paid directly to principal. |
 | Paydown | The remaining principal at the end of the month. |
+
+## Applying Principal Payments
+
+Bucktracker can also help you **apply extraordinary payments** to principal, to see how much faster you will pay off the loan, how much less interest you will pay, etc.
+
+To do this, you need to **create a user** at:
+
+```Welcome Screen -> Log in -> Create Account```
+
+And then log in. Once logged in, **create a new loan** with the button at the bottom right:
+
+<figure style="text-align: center;">
+  <img src="docs/media/loans_menu_1.png" alt="Loans Menu" width="500">
+  <figcaption style="font-style: italic; color: #555; margin-top: 8px;">
+    Loans Menu
+  </figcaption>
+</figure>
+
+Enter your loan data and **create the loan**. It works the same as the calculator, with an additional name field.
+
+After creating the loan, go to view its details. You will find a _Default Payment Plan_ on the _Payment Plans_ section. This is the normal payment plan without extraordinary payments. Add a new Payment Plan using the button:
+
+<figure style="text-align: center;">
+  <img src="docs/media/loan_details_1.png" alt="Loan Details" width="500">
+  <figcaption style="font-style: italic; color: #555; margin-top: 8px;">
+    Loan Details
+  </figcaption>
+</figure>
+
+A payment plan consists on a list of amounts and dates, representing the extraordinary payments you will make. You can add new rows to add more payments:
+
+<figure style="text-align: center;">
+  <img src="docs/media/loan_payment_plan_creation_1.png" alt="Loans Calculator Output" width="500">
+  <figcaption style="font-style: italic; color: #555; margin-top: 8px;">
+    Loans Calculator Output
+  </figcaption>
+</figure>
+
+
+After saving the new payment plan, it will appear in the _Payment Plans_ section. There you can compare the loan duration, or view the details of the Payment Plan:
+
+<figure style="text-align: center;">
+  <img src="docs/media/payment_plan_comparison.png" alt="Payment Plan Comparison" width="500">
+  <figcaption style="font-style: italic; color: #555; margin-top: 8px;">
+    Payment Plan Comparison
+  </figcaption>
+</figure>
+
+
+<figure style="text-align: center;">
+  <img src="docs/media/payment_plan_details.png" alt="Payment Plan Details" width="500">
+  <figcaption style="font-style: italic; color: #555; margin-top: 8px;">
+    Payment Plan Details
+  </figcaption>
+</figure>
+
 
 ## Contributing
 
