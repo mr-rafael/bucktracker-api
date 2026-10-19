@@ -6,17 +6,18 @@ Currently, it can help you:
 
 1. Calculate your future savings on a savings account, depending on how much you wish to deposit every month, what interest rate it has, the term, and other parameters.
 2. Calculate how long it will take you to pay a loan, what your cost of credit will be, depending on the interest rate, your monthly payments, and other parameters. 
+3. How much shorter your loan will be, how much less interest you will pay, and what the cost of credit will be if you make one or more principal payments on it.
 
 ## Motivation
 
-I often find myself making finance-related questions, like:
+Do you have a Savings account, or a Home Mortgage? Have you ever wondered:
 
 - If I deposit x amount each month on my savings account, how much will I have after y years at this rate?
 - How much are my savings really growing, considering inflation?
-- If I take an x-year loan instead of a y-year one, how much more money will I end up paying?
-- How much earlier will my loan be paid if I make a paydown now?
+- If I take an 25-year loan instead of a 30-year one, how much more money will I end up paying?
+- How much earlier will my loan be paid if I make a paydown for X amount now? And if I make it 3 months from now?
 
-I used to make these calculations on spreadsheets, but they become harder to manage with more complex calculations. Instead, I decided to build this RESTful API to implement these calculations more easily.
+You could make these calculations on a spreadsheet, but I thought it more practical and less cumbersome to make a REST API that handles these calculations!
 
 ## Technologies Used
 
@@ -35,6 +36,11 @@ To run the project, make sure you have [Docker](https://www.docker.com/products/
 git clone git@github.com:Mr-Rafael/bucktracker-api.git
 cd bucktracker-api
 ```
+
+## Configure the app
+
+Change the filename of ```.env.example``` into ```.env```. Change any variables if you need, but it will work if you leave it as is. Check [docs/app_configurations.md](docs/app_configurations.md) for the configuration specification.
+
 
 ## Run with Docker Compose
 
@@ -264,6 +270,8 @@ If you'd like to contribute, please fork the repository and open a pull request 
 # API Documentation
 
 Endpoint request and response details live in [docs/api.md](docs/api.md).
+
+System design, layers, and data flow are in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). Frontend stack and page structure are in [docs/frontend_architecture.md](docs/frontend_architecture.md).
 
 # Collaborators</h2>
 <table>

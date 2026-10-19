@@ -1,23 +1,29 @@
 ﻿# API Endpoints
 
-| route               | description                                          
-|----------------------|-----------------------------------------------------
-| <kbd>GET /api/healthz</kbd>     | Check if server is running.
-| <kbd>POST /app/users/create</kbd>     | Create a new user.
-| <kbd>POST /app/login</kbd>     | Login user.
-| <kbd>POST /app/refresh</kbd>     | Refresh the access token.
-| <kbd>POST /app/savings/calculate</kbd>     | Generate a Savings Plan without saving.
-| <kbd>POST /app/loans/calculate</kbd>     | Calculate a Loan Payment Plan without saving.
-| <kbd>POST /app/savings/save</kbd>     | Calculate and save a Savings Plan.
-| <kbd>POST /app/loans/save</kbd>     | Calculate and save a Loan Payment Plan.
-| <kbd>GET /app/savings/list</kbd>     | List a User's saved Savings Plans. 
-| <kbd>GET /app/loans/list</kbd>     | List a User's saved Loan Payment Plans.
-| <kbd>GET /app/savings/{id}</kbd>     | Get a previously saved Savings Plan.
-| <kbd>GET /app/loans/{id}</kbd>     | Get a previously saved Loan Payment Plan.
-| <kbd>PATCH /app/savings/{id}</kbd>     | Update and recalculate a Savings Plan.
-| <kbd>PATCH /app/loans/{id}</kbd>     | Update and recalculate a Loan Payment Plan.
-| <kbd>DELETE /app/savings/{id}</kbd>     | Delete a Savings Plan.
-| <kbd>DELETE /app/loans/{id}</kbd>     | Delete a Loan Payment Plan.
+| route | description |
+|---|---|
+| <kbd>GET /api/healthz</kbd> | Check if server is running. |
+| <kbd>POST /app/users/create</kbd> | Create a new user. |
+| <kbd>POST /app/login</kbd> | Login user. |
+| <kbd>POST /app/refresh</kbd> | Refresh the access token. |
+| <kbd>POST /app/savings/calculate</kbd> | Generate a Savings Plan without saving. |
+| <kbd>POST /app/loans/calculate</kbd> | Calculate a Loan Payment Plan without saving. |
+| <kbd>POST /app/savings/save</kbd> | Calculate and save a Savings Plan. |
+| <kbd>POST /app/loans/save</kbd> | Calculate and save a Loan. |
+| <kbd>GET /app/savings/list</kbd> | List a User's saved Savings Plans. |
+| <kbd>GET /app/loans/list</kbd> | List a User's saved Loans. |
+| <kbd>GET /app/savings/{id}</kbd> | Get a previously saved Savings Plan. |
+| <kbd>GET /app/loans/{id}</kbd> | Get a previously saved Loan. |
+| <kbd>GET /app/loans/{loanId}/payment-plans/{paymentPlanId}</kbd> | Get a payment plan for a Loan. |
+| <kbd>POST /app/loans/{loanId}/payment-plans</kbd> | Create a payment plan for a Loan. |
+| <kbd>PATCH /app/loans/{loanId}/payment-plans/{paymentPlanId}</kbd> | Update a payment plan for a Loan. |
+| <kbd>DELETE /app/loans/{loanId}/payment-plans/{paymentPlanId}</kbd> | Delete a payment plan from a Loan. |
+| <kbd>PATCH /app/savings/{id}</kbd> | Update and recalculate a Savings Plan. |
+| <kbd>PATCH /app/loans/{id}</kbd> | Update a Loan and recalculate its payment plans. |
+| <kbd>DELETE /app/savings/{id}</kbd> | Delete a Savings Plan. |
+| <kbd>DELETE /app/loans/{id}</kbd> | Delete a Loan. |
+
+Money amounts are integers in **cents**. Interest rates and similar percentages are sent as **strings** (for example, `"5"` means 5%).
 
 ## `GET /api/healthz`
 
@@ -120,9 +126,9 @@ POST /app/users/create
   "error": "internal server error"
 }
 ```
-## `POST app/login`
+## `POST /app/login`
 
-Login to receive an access and refresh token. Access tokens are necessary to access some endpoints.
+Login to receive an access and refresh token. Access tokens are necessary to access some endpoints. The refresh token is set as an HTTP-only cookie named `refresh_token`.
 
 ---
 
@@ -184,13 +190,13 @@ POST /app/login
 
 ### Error Responses
 
+### `400 Bad Request`
+
+Returned when the request body cannot be decoded.
+
 ### `401 Unauthorized`
 
-```json
-{
-  "error": "invalid request body"
-}
-```
+Returned when the email or password is invalid.
 ---
 ## `POST /app/refresh`
 
@@ -208,7 +214,7 @@ POST /app/refresh
 
 | Header | Required | Description |
 |---|---|---|
-| Cookie | Yes | The cookie should contain the refresh token obtained from the Login endpoint. |
+| Cookie | Yes | The cookie should contain `refresh_token`, set by the Login endpoint. |
 
 ### Request Body
 
@@ -261,8 +267,7 @@ POST /app/savings/calculate
 
 | Header | Required | Description |
 |---|---|---|
-| Authorization | Yes | Bearer token `Bearer [access token here]` |
-| Content-Type | Yes | Usually `application/json` |
+| Content-Type | Yes | `application/json` |
 
 ### Request Body
 
@@ -285,12 +290,12 @@ POST /app/savings/calculate
 |---|---|---|---|
 | startingCapital | integer | Yes | How much money was deposited at the start of the term, in cents. For example, startingCapital = 100 would mean $1. |
 | yearlyInterestRate | string | Yes | The yearly interest rate for the savings plan. Send as a percent. For example, "6.25" would be a 6.25% interest rate. |
-| startDate | integer | Yes | The start date of the savings plan. |
-| durationYears | integer | Yes | The term you want to calculate in years. 1 means "calculate the savings plan for 1 year".  ISO 8601|
+| startDate | string | Yes | The start date of the savings plan. YYYY-MM-DD. |
+| durationYears | integer | Yes | The term you want to calculate in years. 1 means "calculate the savings plan for 1 year". |
 | interestRateType | string | No | Send "APR" or "APY", depending on the type of interest rate. If empty, it defaults to APY. |
 | monthlyContribution | integer | No | The monthly deposits that will be made (if any). Defaults to 0 if not in the request. The amount is in cents (e.g. 15000 means $150) |
 | taxRate | string | No | The tax rate paid on returns. Send as a percent. For example, "5" means a 5% tax rate. Defaults to 0% if not in the request. |
-| yearlyInflationRate | string | No | The yearly inflation rate, used for rate of return calculations. Send as a percent. For example, "6" means a 6% yearly inflation rate. Defaults to 0% if not in the request..  |
+| yearlyInflationRate | string | No | The yearly inflation rate, used for rate of return calculations. Send as a percent. For example, "6" means a 6% yearly inflation rate. Defaults to 0% if not in the request.  |
 
 ---
 
@@ -361,14 +366,6 @@ POST /app/savings/calculate
 }
 ```
 
-### `401 Unauthorized`
-
-```json
-{
-    "error": "error message dependimg on authentication error"
-}
-```
-
 ### `500 Internal Server Error`
 
 ```json
@@ -392,8 +389,7 @@ POST /app/loans/calculate
 
 | Header | Required | Description |
 |---|---|---|
-| Authorization | Yes | Bearer token `Bearer [access token here]` |
-| Content-Type | Yes | Usually `application/json` |
+| Content-Type | Yes | `application/json` |
 
 ### Request Body
 
@@ -415,7 +411,7 @@ POST /app/loans/calculate
 | yearlyInterestRate | string | Yes | Yearly interest rate of the loan (APR). Send as a percent ("5" would mean 5% yearly interest rate) |
 | monthlyPayment | integer | Yes | Monthly payments made to the loan, in cents. |
 | escrowPayment | integer | Yes | Additional, fixed payments that you make every month. For example, insurance, that are part of the monthly payments. |
-| startDate | string | Yes | Start date of the loan. |
+| startDate | string | Yes | Start date of the loan. YYYY-MM-DD. |
 
 ---
 
@@ -471,9 +467,9 @@ POST /app/loans/calculate
 | date | string | The date of this monthly status. ISO 8601. |
 | payment | integer | The payment made this month. |
 | interest | integer | The interest accrued this month. |
-| otherPayments | string | The amount that went into other payments this month (escrow payments like insurance). |
-| paydown | array of plan statuses | The amount that was paid to principal this month. |
-| principal | array of plan statuses | The loan principal at the end of this month. |
+| otherPayments | integer | The amount that went into other payments this month (escrow payments like insurance). |
+| paydown | integer | The amount that was paid to principal this month. |
+| principal | integer | The loan principal at the end of this month. |
 
 ---
 
@@ -484,14 +480,6 @@ POST /app/loans/calculate
 ```json
 {
   "error": "error message depending on the invalid or missing field"
-}
-```
-
-### `401 Unauthorized`
-
-```json
-{
-    "error": "error message depending on authentication error"
 }
 ```
 
@@ -541,15 +529,15 @@ POST /app/savings/save
 
 | Field | Type | Required | Description |
 |---|---|---|---|
-| Name | string | Yes | The name of the savings plan. Doesn't need to be unique. |
+| name | string | Yes | The name of the savings plan. Doesn't need to be unique. |
 | startingCapital | integer | Yes | How much money was deposited at the start of the term, in cents. For example, startingCapital = 100 would mean $1. |
 | yearlyInterestRate | string | Yes | The yearly interest rate for the savings plan. Send as a percent. For example, "6.25" would be a 6.25% interest rate. |
-| startDate | integer | Yes | The start date of the savings plan. |
-| durationYears | integer | Yes | The term you want to calculate in years. 1 means "calculate the savings plan for 1 year".  ISO 8601|
+| startDate | string | Yes | The start date of the savings plan. YYYY-MM-DD. |
+| durationYears | integer | Yes | The term you want to calculate in years. 1 means "calculate the savings plan for 1 year". |
 | interestRateType | string | No | Send "APR" or "APY", depending on the type of interest rate. If empty, it defaults to APY. |
 | monthlyContribution | integer | No | The monthly deposits that will be made (if any). Defaults to 0 if not in the request. The amount is in cents (e.g. 15000 means $150) |
 | taxRate | string | No | The tax rate paid on returns. Send as a percent. For example, "5" means a 5% tax rate. Defaults to 0% if not in the request. |
-| yearlyInflationRate | string | No | The yearly inflation rate, used for rate of return calculations. Send as a percent. For example, "6" means a 6% yearly inflation rate. Defaults to 0% if not in the request..  |
+| yearlyInflationRate | string | No | The yearly inflation rate, used for rate of return calculations. Send as a percent. For example, "6" means a 6% yearly inflation rate. Defaults to 0% if not in the request.  |
 
 ---
 
@@ -570,7 +558,7 @@ POST /app/savings/save
     "durationYears": 1,
     "taxRate": "0",
     "yearlyInflationRate": "0",
-    "startDate": "2026-01-31T18:00:00-06:00",
+    "startDate": "2026-01-31",
     "monthlyInterestRate": "0.3874684992129274856453709025059820372",
     "totalDeposited": 880000,
     "totalEarnings": 37136,
@@ -584,20 +572,20 @@ POST /app/savings/save
 | Field | Type | Description |
 |---|---|---|
 | id | string | The ID of the created Savings Plan. UUID v4. |
-| name | string | The name of the created loan. |
-| startingCapital | int | Confirmation of the starting capital saved in the database |
+| name | string | The name of the created savings plan. |
+| startingCapital | integer | Confirmation of the starting capital saved in the database |
 | yearlyInterestRate | string | Confirmation of the yearly interest rate saved in the database |
 | interestRateType | string | Confirmation of the interest rate type saved in the database. |
 | monthlyContribution | integer | Confirmation of the monthly contribution saved in the database. |
 | durationYears | integer | Confirmation of the duration saved in the database. |
 | taxRate | string | Confirmation of the tax rate saved in the database. |
 | yearlyInflationRate | string | Confirmation of the yearly inflation rate saved in the database. |
-| startDate | string | Confirmation of the start date saved in the database. ISO 8601 timestamp. |
+| startDate | string | Confirmation of the start date saved in the database. YYYY-MM-DD. |
 | monthlyInterestRate | string | The monthly interest rate calculated from the yearly one, used for calculations. |
 | totalDeposited | integer | The total money deposited on the account in cents. |
-| totalEarnings | string | The total money earned in interest after the term. |
+| totalEarnings | integer | The total money earned in interest after the term. |
 | rateOfReturn | string | The total savings in the account divided by what was actually deposited. Represents a percent (4.22 means 4.22% rate of return) |
-| inflationAdjustedROR | string | The rate of retrun divided by the inflation at the end of the term. Represents a percent (4.22 means 4.22% rate of return). |
+| inflationAdjustedROR | string | The rate of return divided by the inflation at the end of the term. Represents a percent (4.22 means 4.22% rate of return). |
 
 ---
 
@@ -615,7 +603,7 @@ POST /app/savings/save
 
 ```json
 {
-    "error": "error message dependimg on authentication error"
+    "error": "error message depending on authentication error"
 }
 ```
 
@@ -628,7 +616,7 @@ POST /app/savings/save
 ```
 ## `POST /app/loans/save`
 
-Calculate and then save a Loan Payment Plan in database.
+Calculate and then save a Loan. A newly created loan starts with a default payment plan named `Default Payment Plan` and no extra principal payments.
 
 ---
 
@@ -662,12 +650,12 @@ POST /app/loans/save
 
 | Field | Type | Required | Description |
 |---|---|---|---|
-| name | string | Yes | Name for the new Loan Payment Plan. |
+| name | string | Yes | Name for the new Loan. |
 | startingPrincipal | integer | Yes | Starting principal of the loan in cents. |
 | yearlyInterestRate | string | Yes | Yearly interest rate of the loan (APR). Send as a percent ("5" would mean 5% yearly interest rate) |
 | monthlyPayment | integer | Yes | Monthly payments made to the loan, in cents. |
 | escrowPayment | integer | Yes | Additional, fixed payments that you make every month. For example, insurance, that are part of the monthly payments. |
-| startDate | string | Yes | Start date of the loan. |
+| startDate | string | Yes | Start date of the loan. YYYY-MM-DD. |
 
 ---
 
@@ -683,13 +671,18 @@ POST /app/loans/save
     "name": "Test",
     "startingPrincipal": 10000000,
     "yearlyInterestRate": "5",
-    "monthlyPayment": 900076,
-    "escrowPayment": 10000,
-    "startDate": "1969-12-31T18:00:00-06:00",
-    "durationMonths": 12,
-    "totalExpenditure": 383416,
-    "totalPaid": 10383416,
-    "costOfCreditPercent": "3.83416398261762"
+    "defaultPaymentPlan": {
+        "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+        "name": "Default Payment Plan",
+        "durationMonths": 12
+    },
+    "paymentPlans": [
+        {
+            "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+            "name": "Default Payment Plan",
+            "durationMonths": 12
+        }
+    ]
 }
 ```
 
@@ -699,17 +692,20 @@ POST /app/loans/save
 
 | Field | Type | Description |
 |---|---|---|
-| id | string | The ID of the created Loan Payment Plan. UUID v4. |
-| name | string | The name of the created Loan Payment Plan. |
+| id | string | The ID of the created Loan. UUID v4. |
+| name | string | The name of the created Loan. |
 | startingPrincipal | integer | Confirmation of the starting principal saved on database. |
-| yearlyInterestRate | integer | Confirmation of the yearly interest rate saved on database. |
-| monthlyPayment | integer | Confirmation of the monthly payment saved on database. |
-| escrowPayment | integer | Confirmation of the escrow payment saved on database. |
-| startDate | integer | Confirmation of the start date saved on database. ISO 8601 timestamp. |
-| durationMonths | integer | Calculated duration of the loan in months. |
-| totalExpenditure | integer | The total non-principal expenditures at the end of the loan. Includes interest and escrow payments. |
-| totalPaid | integer | The toal money paid on the loan. Includes interest, escrow and principal payments. |
-| costOfCreditPercent | string | Calculated cost of credit as a percent. For example, "3.33" means a 3.33% cost of credit. |
+| yearlyInterestRate | string | Confirmation of the yearly interest rate saved on database. |
+| defaultPaymentPlan | object | Summary of the default payment plan created with the loan. |
+| paymentPlans | array of payment plan summaries | All payment plans on the loan. A newly created loan contains only the default plan. |
+
+**Payment Plan Summary Fields**
+
+| Field | Type | Description |
+|---|---|---|
+| id | string | The payment plan's ID. UUID v4. |
+| name | string | The payment plan's name. |
+| durationMonths | integer | Calculated duration of this payment plan in months. |
 
 ---
 
@@ -810,14 +806,6 @@ No body required. The user information is extracted from the Access Token.
     "error": "error message depending on authentication error"
 }
 ```
-
-### `500 Internal Server Error`
-
-```json
-{
-  "error": "internal server error"
-}
-```
 ## `GET /app/loans/list`
 
 List all the loans associated with a user.
@@ -869,15 +857,15 @@ No body required. The user information is extracted from the Access Token.
 
 | Field | Type | Description |
 |---|---|---|
-| plans | Array of plans data. | The list of Loan Payment Plans associated with the user. |
+| loans | Array of loan data. | The list of Loans associated with the user. |
 
-**Plan data**
+**Loan data**
 
 | Field | Type | Description |
 |---|---|---|
-| id | string | The plan's ID. UUID v4. |
-| name | string | The plan's name. |
-| loanAmount | integer | The plan's starting principal in cents. |
+| id | string | The loan's ID. UUID v4. |
+| name | string | The loan's name. |
+| loanAmount | integer | The loan's starting principal in cents. |
 
 ---
 
@@ -888,14 +876,6 @@ No body required. The user information is extracted from the Access Token.
 ```json
 {
     "error": "error message depending on authentication error"
-}
-```
-
-### `500 Internal Server Error`
-
-```json
-{
-  "error": "internal server error"
 }
 ```
 ## `GET /app/savings/{id}`
@@ -946,7 +926,7 @@ None.
         "durationYears": 1,
         "taxRate": "0",
         "yearlyInflationRate": "0",
-        "startDate": "2026-01-31T18:00:00-06:00"
+        "startDate": "2026-01-31"
     },
     "calculatedData": {
         "monthlyInterestRate": "0.3874684992",
@@ -973,8 +953,9 @@ None.
 | Field | Type | Description |
 |---|---|---|
 | id | string | Resource ID |
+| name | string | The savings plan's name. |
 | originalData | Object | The original plan data, received when it was created. Consult the `/app/savings/calculate` documentation for more information on the fields. |
-| calculatedData | Object | The data calculated from the initial data. Consult the `/app/savings/calculate` documentation for more information on the fields. |
+| calculatedData | Object | The data calculated from the initial data. Consult the `/app/savings/calculate` documentation for more information on the fields. `totalInterestEarnings` is the same value as `totalEarnings` on the calculate endpoint. |
 | plan | Array of Objects | The monthly statuses of the savings plan. Consult the `/app/savings/calculate` documentation for more information on the fields. |
 
 ---
@@ -984,17 +965,9 @@ None.
 ### `401 Unauthorized`
 
 Returned either when the resource is not found, or the user was unauthorized.
-
-### `500 Internal Server Error`
-
-```json
-{
-  "error": "internal server error"
-}
-```
 ## `GET /app/loans/{id}`
 
-Retrieve the data of the specified Loan Payment Plan.
+Retrieve the data of the specified Loan, including summaries of its payment plans.
 
 ---
 
@@ -1014,7 +987,7 @@ GET /app/loans/{id}
 
 | Parameter | Type | Required | Description |
 |---|---|---|---|
-| id | string | Yes | UUID of the requested Loan Payment Plan. |
+| id | string | Yes | UUID of the requested Loan. |
 
 ### Request Body
 
@@ -1037,18 +1010,94 @@ None.
         "yearlyInterestRate": "5",
         "monthlyPayment": 900076,
         "escrowPayment": 10000,
-        "startDate": "1969-12-31T18:00:00-06:00"
+        "startDate": "1970-01-01"
     },
-    "calculatedData": {
-        "monthlyInterestRate": "0.4166666667",
-        "durationMonths": 12,
-        "totalExpenditure": 383416,
-        "totalPaid": 10383416,
-        "costOfCredit": "1.0383416398261762"
+    "defaultPaymentPlan": {
+        "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+        "name": "Default Payment Plan",
+        "durationMonths": 12
     },
-    "paymentPlan": [
+    "paymentPlans": [
         {
-            "date": "1970-01-31T18:00:00-06:00",
+            "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+            "name": "Default Payment Plan",
+            "durationMonths": 12
+        }
+    ]
+}
+```
+
+### Response Fields
+
+| Field | Type | Description |
+|---|---|---|
+| id | string | Resource ID |
+| name | string | The loan's name. |
+| originalData | Object | The original loan data, received when it was created. Consult the `/app/loans/calculate` documentation for more information on the fields. |
+| defaultPaymentPlan | Object | Summary of the loan's default payment plan. Consult the `/app/loans/save` documentation for the summary fields. |
+| paymentPlans | Array of Objects | Summaries of every payment plan on the loan. Use `GET /app/loans/{loanId}/payment-plans/{paymentPlanId}` to retrieve a plan's monthly breakdown. |
+
+---
+
+### Error Responses
+
+### `401 Unauthorized`
+
+Returned either when the resource is not found, or the user was unauthorized.
+## `GET /app/loans/{loanId}/payment-plans/{paymentPlanId}`
+
+Retrieve a specific payment plan for a Loan, including extra principal payments and the monthly breakdown.
+
+---
+
+### URL
+
+```http
+GET /app/loans/{loanId}/payment-plans/{paymentPlanId}
+```
+
+### Headers
+
+| Header | Required | Description |
+|---|---|---|
+| Authorization | Yes | Bearer token `Bearer [access token here]` |
+
+### Path Parameters
+
+| Parameter | Type | Required | Description |
+|---|---|---|---|
+| loanId | string | Yes | UUID of the Loan that owns the payment plan. |
+| paymentPlanId | string | Yes | UUID of the requested payment plan. |
+
+### Request Body
+
+None.
+
+---
+
+### Response
+
+### Success Response
+
+**Status Code:** `200 OK`
+
+```json
+{
+    "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    "name": "Default Payment Plan",
+    "durationMonths": 12,
+    "totalExpenditure": 120000,
+    "totalPaid": 10800000,
+    "costOfCredit": "8",
+    "principalPayments": [
+        {
+            "date": "1970-02-01",
+            "amount": 500000
+        }
+    ],
+    "paymentPlanBreakdown": [
+        {
+            "date": "1970-02-01T00:00:00Z",
             "payment": 900076,
             "interest": 41667,
             "otherPayments": 10000,
@@ -1063,10 +1112,21 @@ None.
 
 | Field | Type | Description |
 |---|---|---|
-| id | string | Resource ID |
-| originalData | Object | The original plan data, received when it was created. Consult the `/app/loans/calculate` documentation for more information on the fields. |
-| calculatedData | Object | The data calculated from the initial data. Consult the `/app/loans/calculate` documentation for more information on the fields. |
-| plan | Array of Objects | The monthly statuses of the savings plan. Consult the `/app/loans/calculate` documentation for more information on the fields. |
+| id | string | The payment plan's ID. UUID v4. |
+| name | string | The payment plan's name. |
+| durationMonths | integer | Calculated duration of the payment plan in months. |
+| totalExpenditure | integer | Total money paid to non-principal payments at the end of the plan. This includes interest and escrow payments. |
+| totalPaid | integer | Total money paid at the end of the plan, including interest, principal and escrow payments. |
+| costOfCredit | string | How much more was paid than what was loaned. |
+| principalPayments | array of principal payments | Extra principal payments applied to this plan. |
+| paymentPlanBreakdown | array of plan statuses | An array of monthly statuses of the payment plan. Consult the `/app/loans/calculate` documentation for the status fields. |
+
+**Principal Payment Fields**
+
+| Field | Type | Description |
+|---|---|---|
+| date | string | Date of the extra principal payment. YYYY-MM-DD. |
+| amount | integer | Extra principal payment amount, in cents. |
 
 ---
 
@@ -1075,6 +1135,112 @@ None.
 ### `401 Unauthorized`
 
 Returned either when the resource is not found, or the user was unauthorized.
+## `POST /app/loans/{loanId}/payment-plans`
+
+Create a new payment plan for an existing Loan. The plan is calculated from the loan's current terms plus any extra principal payments in the request.
+
+---
+
+### URL
+
+```http
+POST /app/loans/{loanId}/payment-plans
+```
+
+### Headers
+
+| Header | Required | Description |
+|---|---|---|
+| Authorization | Yes | Bearer token `Bearer [access token here]` |
+| Content-Type | Yes | `application/json` |
+
+### Path Parameters
+
+| Parameter | Type | Required | Description |
+|---|---|---|---|
+| loanId | string | Yes | UUID of the Loan that will own the new payment plan. |
+
+### Request Body
+
+```json
+{
+    "name": "Extra Principal Plan",
+    "principalPayments": [
+        {
+            "date": "1970-02-01",
+            "amount": 500000
+        }
+    ]
+}
+```
+
+### Request Fields
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| name | string | Yes | Name for the new payment plan. |
+| principalPayments | array of principal payments | No | Extra principal payments to apply while calculating the plan. Dates must be YYYY-MM-DD. Amounts are in cents. |
+
+---
+
+### Response
+
+### Success Response
+
+**Status Code:** `201 Created`
+
+The response body uses the same shape as `GET /app/loans/{loanId}/payment-plans/{paymentPlanId}`.
+
+```json
+{
+    "id": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
+    "name": "Extra Principal Plan",
+    "durationMonths": 10,
+    "totalExpenditure": 95000,
+    "totalPaid": 10500000,
+    "costOfCredit": "5",
+    "principalPayments": [
+        {
+            "date": "1970-02-01",
+            "amount": 500000
+        }
+    ],
+    "paymentPlanBreakdown": [
+        {
+            "date": "1970-02-01T00:00:00Z",
+            "payment": 900076,
+            "interest": 41667,
+            "otherPayments": 10000,
+            "paydown": 848409,
+            "principal": 9151591
+        }
+    ]
+}
+```
+
+### Response Fields
+
+Consult the `GET /app/loans/{loanId}/payment-plans/{paymentPlanId}` documentation for the response fields.
+
+---
+
+### Error Responses
+
+### `400 Bad Request`
+
+```json
+{
+  "error": "error message depending on the invalid or missing field"
+}
+```
+
+### `401 Unauthorized`
+
+```json
+{
+    "error": "error message depending on authentication error"
+}
+```
 
 ### `500 Internal Server Error`
 
@@ -1083,6 +1249,173 @@ Returned either when the resource is not found, or the user was unauthorized.
   "error": "internal server error"
 }
 ```
+## `PATCH /app/loans/{loanId}/payment-plans/{paymentPlanId}`
+
+Update a payment plan's name and/or replace its extra principal payments. If `principalPayments` is sent, the plan is recalculated. Sending an empty body is rejected.
+
+---
+
+### URL
+
+```http
+PATCH /app/loans/{loanId}/payment-plans/{paymentPlanId}
+```
+
+### Headers
+
+| Header | Required | Description |
+|---|---|---|
+| Authorization | Yes | Bearer token `Bearer [access token here]` |
+| Content-Type | Yes | `application/json` |
+
+### Path Parameters
+
+| Parameter | Type | Required | Description |
+|---|---|---|---|
+| loanId | string | Yes | UUID of the Loan that owns the payment plan. |
+| paymentPlanId | string | Yes | UUID of the payment plan to update. |
+
+### Request Body
+
+```json
+{
+    "name": "New Name",
+    "principalPayments": [
+        {
+            "date": "1970-02-01",
+            "amount": 500000
+        }
+    ]
+}
+```
+
+### Request Fields
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| name | string | No | Updated name for the payment plan. |
+| principalPayments | array of principal payments | No | Replaces the plan's extra principal payments, then recalculates the plan. Dates must be YYYY-MM-DD. Amounts are in cents. |
+
+At least one of `name` or `principalPayments` must be present.
+
+---
+
+### Response
+
+### Success Response
+
+**Status Code:** `200 OK`
+
+The response body uses the same shape as `GET /app/loans/{loanId}/payment-plans/{paymentPlanId}`.
+
+```json
+{
+    "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    "name": "New Name",
+    "durationMonths": 12,
+    "totalExpenditure": 120000,
+    "totalPaid": 10800000,
+    "costOfCredit": "8",
+    "principalPayments": [
+        {
+            "date": "1970-02-01",
+            "amount": 500000
+        }
+    ],
+    "paymentPlanBreakdown": [
+        {
+            "date": "1970-02-01T00:00:00Z",
+            "payment": 900076,
+            "interest": 41667,
+            "otherPayments": 10000,
+            "paydown": 848409,
+            "principal": 9151591
+        }
+    ]
+}
+```
+
+### Response Fields
+
+Consult the `GET /app/loans/{loanId}/payment-plans/{paymentPlanId}` documentation for the response fields.
+
+---
+
+### Error Responses
+
+### `400 Bad Request`
+
+```json
+{
+  "error": "empty update request"
+}
+```
+
+### `401 Unauthorized`
+
+```json
+{
+    "error": "error message depending on authentication error"
+}
+```
+
+### `500 Internal Server Error`
+
+```json
+{
+  "error": "internal server error"
+}
+```
+## `DELETE /app/loans/{loanId}/payment-plans/{paymentPlanId}`
+
+Delete the specified payment plan.
+
+---
+
+### URL
+
+```http
+DELETE /app/loans/{loanId}/payment-plans/{paymentPlanId}
+```
+
+### Headers
+
+| Header | Required | Description |
+|---|---|---|
+| Authorization | Yes | Bearer token `Bearer [access token here]` |
+
+### Path Parameters
+
+| Parameter | Type | Required | Description |
+|---|---|---|---|
+| loanId | string | Yes | UUID of the Loan that owns the payment plan. |
+| paymentPlanId | string | Yes | UUID of the payment plan to delete. |
+
+### Request Body
+
+None.
+
+### Response
+
+### Success Response
+
+**Status Code:** `204 No Content`
+
+```json
+No body.
+```
+
+---
+
+### Error Responses
+
+### `401 Unauthorized`
+
+Returned when the user is unauthorized or a path ID is invalid.
+
+### `404 Not Found`
+
+Returned when the payment plan could not be deleted.
 ## `PATCH /app/savings/{id}`
 
 Update the initial data of a Savings Plan, recalculate and save changes to database.
@@ -1128,10 +1461,10 @@ PATCH /app/savings/{id}
 
 | Field | Type | Required | Description |
 |---|---|---|---|
-| Name | string | No | Updated name for the savings plan. |
+| name | string | No | Updated name for the savings plan. |
 | startingCapital | integer | No | Updated starting capital for the savings plan, in cents. |
 | yearlyInterestRate | string | No | Updated yearly interest rate for the savings plan, as a percent. Example: "5" means 5%. |
-| startDate | integer | No | Updated start date for the savings plan. YYYY-MM-DD format. |
+| startDate | string | No | Updated start date for the savings plan. YYYY-MM-DD format. |
 | durationYears | integer | No | Updated duration for the savings plan, in years. |
 | interestRateType | string | No | Updated interest rate type for the savings plan. "APR" or "APY". |
 | monthlyContribution | integer | No | Updated monthly contribution, in cents. |
@@ -1157,7 +1490,7 @@ PATCH /app/savings/{id}
     "durationYears": 1,
     "taxRate": "0",
     "yearlyInflationRate": "0",
-    "startDate": "2026-01-23T18:00:00-06:00",
+    "startDate": "2026-01-23",
     "monthlyInterestRate": "0.3434379290046821080713036287486481524",
     "totalDeposited": 880000,
     "totalEarnings": 32839,
@@ -1170,7 +1503,7 @@ PATCH /app/savings/{id}
 | Field | Type | Description |
 |---|---|---|
 | id | string | The ID of the updated Savings Plan. UUID v4. |
-| name | string | The name of the updated savins plan. |
+| name | string | The name of the updated savings plan. |
 | startingCapital | integer | Current starting capital of the savings plan. |
 | yearlyInterestRate | string | Current yearly interest rate of the savings plan. |
 | interestRateType | string | Current interest rate type of the savings plan. |
@@ -1178,129 +1511,12 @@ PATCH /app/savings/{id}
 | durationYears | integer | Current duration of the savings plan. |
 | taxRate | string | Current tax rate of the savings plan. |
 | yearlyInflationRate | string | Current yearly inflation rate of the savings plan. |
-| startDate | string | Current start date of the savings plan.. ISO 8601 timestamp. |
+| startDate | string | Current start date of the savings plan. YYYY-MM-DD. |
 | monthlyInterestRate | string | Recalculated monthly interest rate. |
 | totalDeposited | integer | Recalculated total deposited. |
-| totalEarnings | string | Recalculated total earnings. |
+| totalEarnings | integer | Recalculated total earnings. |
 | rateOfReturn | string | Recalculated rate of return. |
 | inflationAdjustedROR | string | Recalculated inflation adjusted rate of return. |
-
----
-
-### Error Responses
-
-### `400 Bad Request`
-
-```json
-{
-  "error": "error message depending on the invalid or missing field"
-}
-```
-
-### `401 Unauthorized`
-
-```json
-{
-    "error": "error message dependimg on authentication error"
-}
-```
-
-### `500 Internal Server Error`
-
-```json
-{
-  "error": "internal server error"
-}
-```
-## `PATCH /app/loans/{id}`
-
-Update the initial data of a Loan Payment Plan, recalculate and save changes to database.
-
----
-
-### URL
-
-```http
-PATCH /app/loans/{id}
-```
-
-### Headers
-
-| Header | Required | Description |
-|---|---|---|
-| Authorization | Yes | Bearer token `Bearer [access token here]` |
-| Content-Type | Yes |  `application/json` |
-
-### Path Parameters
-
-| Parameter | Type | Required | Description |
-|---|---|---|---|
-| id | string | Yes | UUID of the requested Loan Payment Plan |
-
-### Request Body
-
-```json
-{
-  "name": "Test",
-  "startingPrincipal": 10000000,
-  "yearlyInterestRate": "5",
-  "monthlyPayment": 1500000,
-  "escrowPayment": 10000,
-  "startDate": "1970-01-01"
-}
-```
-
-### Request Fields
-
-| Field | Type | Required | Description |
-|---|---|---|---|
-| Name | string | No | Updated name for the savings plan. |
-| startingPrincipal | integer | No | Updated starting principal for the loan payment plan, in cents. |
-| yearlyInterestRate | string | No | Updated yearly interest rate for the loan payment plan, as a percent. Example: "5" means 5%. |
-| monthlyPayment | integer | No | Updated monthly payment for the loan payment plan, in cents. |
-| escrowPayment | integer | No | Updated amount of other payments (not interest or principal) for the loan payment plan. |
-| startDate | string | No | Updated start date for the loan payment plan. YYYY-MM-DD format. |
-
----
-
-### Response
-
-### Success Response
-
-**Status Code:** `200 OK`
-
-```json
-{
-    "id": "ef375465-08ad-4947-9541-e192367797f7",
-    "name": "Test 2",
-    "startingPrincipal": 10000000,
-    "yearlyInterestRate": "4",
-    "monthlyPayment": 900076,
-    "escrowPayment": 10000,
-    "startDate": "1969-12-23T18:00:00-06:00",
-    "durationMonths": 12,
-    "totalExpenditure": 329407,
-    "totalPaid": 10329407,
-    "costOfCreditPercent": "3.2940656243549"
-}
-
-```
-
-### Response Fields
-
-| Field | Type | Description |
-|---|---|---|
-| id | string | The ID of the updated Savings Plan. UUID v4. |
-| name | string | The name of the updated savins plan. |
-| startingPrincipal | integer | Current starting starting principal of the loan payment plan. |
-| yearlyInterestRate | string | Current yearly interest rate of the loan payment plan. |
-| monthlyPayment | integer | Current monthly payment rate of the loan payment plan. |
-| escrowPayment | integer | Current amount of other payments of the loan payment plan. |
-| startDate | string | Current start date of the loan payment plan. YYYY-MM-DD format. |
-| durationMonths | integer | Recalculated duration of the loan payment plan. |
-| totalExpenditure | integer | Recalculated total expenditure of the loan payment plan. |
-| totalPaid | integer | Recalculated total paid of the loan payment plan. |
-| costOfCreditPercent | string | Recalculated cost of credit of the loan payment plan. |
 
 ---
 
@@ -1329,6 +1545,126 @@ PATCH /app/loans/{id}
   "error": "internal server error"
 }
 ```
+## `PATCH /app/loans/{id}`
+
+Update the initial data of a Loan and save the changes. If loan terms change (principal, interest rate, monthly payment, escrow, or start date), every payment plan on the loan is recalculated.
+
+---
+
+### URL
+
+```http
+PATCH /app/loans/{id}
+```
+
+### Headers
+
+| Header | Required | Description |
+|---|---|---|
+| Authorization | Yes | Bearer token `Bearer [access token here]` |
+| Content-Type | Yes |  `application/json` |
+
+### Path Parameters
+
+| Parameter | Type | Required | Description |
+|---|---|---|---|
+| id | string | Yes | UUID of the requested Loan |
+
+### Request Body
+
+```json
+{
+  "name": "Test",
+  "startingPrincipal": 10000000,
+  "yearlyInterestRate": "5",
+  "monthlyPayment": 1500000,
+  "escrowPayment": 10000,
+  "startDate": "1970-01-01"
+}
+```
+
+### Request Fields
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| name | string | No | Updated name for the loan. |
+| startingPrincipal | integer | No | Updated starting principal for the loan, in cents. |
+| yearlyInterestRate | string | No | Updated yearly interest rate for the loan, as a percent. Example: "5" means 5%. |
+| monthlyPayment | integer | No | Updated monthly payment for the loan, in cents. |
+| escrowPayment | integer | No | Updated amount of other payments (not interest or principal) for the loan. |
+| startDate | string | No | Updated start date for the loan. YYYY-MM-DD format. |
+
+---
+
+### Response
+
+### Success Response
+
+**Status Code:** `200 OK`
+
+The response body uses the same shape as `GET /app/loans/{id}`.
+
+```json
+{
+    "id": "ef375465-08ad-4947-9541-e192367797f7",
+    "name": "Test 2",
+    "originalData": {
+        "startingPrincipal": 10000000,
+        "yearlyInterestRate": "4",
+        "monthlyPayment": 900076,
+        "escrowPayment": 10000,
+        "startDate": "1970-01-01"
+    },
+    "defaultPaymentPlan": {
+        "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+        "name": "Default Payment Plan",
+        "durationMonths": 12
+    },
+    "paymentPlans": [
+        {
+            "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+            "name": "Default Payment Plan",
+            "durationMonths": 12
+        }
+    ]
+}
+```
+
+### Response Fields
+
+Consult the `GET /app/loans/{id}` documentation for the response fields.
+
+---
+
+### Error Responses
+
+### `400 Bad Request`
+
+```json
+{
+  "error": "error message depending on the invalid or missing field"
+}
+```
+
+### `401 Unauthorized`
+
+```json
+{
+    "error": "error message depending on authentication error"
+}
+```
+
+### `404 Not Found`
+
+Returned when the loan ID in the URL is not a valid UUID.
+
+### `500 Internal Server Error`
+
+```json
+{
+  "error": "internal server error"
+}
+```
 ## `DELETE /app/savings/{id}`
 
 Delete the specified Savings Plan.
@@ -1346,7 +1682,6 @@ DELETE /app/savings/{id}
 | Header | Required | Description |
 |---|---|---|
 | Authorization | Yes | Bearer token `Bearer [access token here]` |
-| Content-Type | Yes |  `application/json` |
 
 ### Path Parameters
 
@@ -1374,22 +1709,14 @@ No body.
 
 ### `401 Unauthorized`
 
-```json
-{
-  "error": "resource not found"
-}
-```
+Returned when the user is unauthorized or the plan ID is invalid.
 
-### `500 Internal Server Error`
+### `404 Not Found`
 
-```json
-{
-  "error": "internal server error"
-}
-```
+Returned when the savings plan could not be deleted.
 ## `DELETE /app/loans/{id}`
 
-Delete the specified Loan Payment Plan.
+Delete the specified Loan.
 
 ---
 
@@ -1404,13 +1731,12 @@ DELETE /app/loans/{id}
 | Header | Required | Description |
 |---|---|---|
 | Authorization | Yes | Bearer token `Bearer [access token here]` |
-| Content-Type | Yes |  `application/json` |
 
 ### Path Parameters
 
 | Parameter | Type | Required | Description |
 |---|---|---|---|
-| id | string | Yes | UUID of the Loan Payment Plan to be deleted. |
+| id | string | Yes | UUID of the Loan to be deleted. |
 
 ### Request Body
 
@@ -1432,16 +1758,8 @@ No body.
 
 ### `401 Unauthorized`
 
-```json
-{
-  "error": "resource not found"
-}
-```
+Returned when the user is unauthorized or the loan ID is invalid.
 
-### `500 Internal Server Error`
+### `404 Not Found`
 
-```json
-{
-  "error": "internal server error"
-}
-```
+Returned when the loan could not be deleted.
