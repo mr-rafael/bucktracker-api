@@ -26,11 +26,21 @@ func New() *App {
 	// environment variables
 	err := godotenv.Load()
 	if err != nil {
-		fmt.Printf("Warning: Error reading .env: %v\n", err)
+		fmt.Printf("No .env file found; using environment variables: %v\n", err)
 	}
 	accessSecret := os.Getenv("ACCESS_SECRET")
 	refreshSecret := os.Getenv("REFRESH_SECRET")
 	dbURL := os.Getenv("POSTGRES_CONNECTION_STRING")
+
+	if accessSecret == "" {
+		log.Fatal("ACCESS_SECRET is required")
+	}
+	if refreshSecret == "" {
+		log.Fatal("REFRESH_SECRET is required")
+	}
+	if dbURL == "" {
+		log.Fatal("POSTGRES_CONNECTION_STRING is required")
+	}
 
 	// database
 	if dbURL == "" {

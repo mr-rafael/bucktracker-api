@@ -10,3 +10,4 @@
 | `POSTGRES_CONNECTION_STRING` | Used for database connections. Set it to `postgres://<your user>:<your password>@localhost:<database port>/finance_calculator?sslmode=disable`. |
 | `ACCESS_SECRET` | The secret used for signing Access Tokens. |
 | `REFRESH_SECRET` | The secret used for signing Refresh Tokens. |
+| `ENV` | In what environment you're running. It affects your Refresh Token cookie. If in "production", it will be set as `Secure: true`. |
