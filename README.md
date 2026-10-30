@@ -2,22 +2,39 @@
 
 **A REST API with useful Savings and Loans calculations.**
 
+Do you have a loan or mortgage? Have you wondered how much you could save in interest if you make early principal payments? Or how much earlier you could pay it off? Bucktracker can help you with these questions!
+
 Currently, it can help you:
 
 1. Calculate your future savings on a savings account, depending on how much you wish to deposit every month, what interest rate it has, the term, and other parameters.
 2. Calculate how long it will take you to pay a loan, what your cost of credit will be, depending on the interest rate, your monthly payments, and other parameters. 
 3. How much shorter your loan will be, how much less interest you will pay, and what the cost of credit will be if you make one or more principal payments on it.
 
+<figure style="text-align: center;">
+  <video
+    src="docs/media/video_demo.mp4"
+    width="800"
+    controls
+    playsinline
+    preload="metadata"
+  >
+    Your browser does not support HTML video.
+  </video>
+  <figcaption style="font-style: italic; color: #555; margin-top: 8px;">
+    BuckTracker Loan Payment Plans creation
+  </figcaption>
+</figure>
+
 ## Motivation
 
-Do you have a Savings account, or a Home Mortgage? Have you ever wondered:
+If you have a Savings account or a Home Mortgage, and you have ever wondered:
 
 - If I deposit x amount each month on my savings account, how much will I have after y years at this rate?
 - How much are my savings really growing, considering inflation?
 - If I take an 25-year loan instead of a 30-year one, how much more money will I end up paying?
 - How much earlier will my loan be paid if I make a paydown for X amount now? And if I make it 3 months from now?
 
-You could make these calculations on a spreadsheet, but I thought it more practical and less cumbersome to make a REST API that handles these calculations!
+Bucktracker was developed to help answer these questions, and easily manage and compare payment plans.
 
 ## Technologies Used
 
@@ -37,9 +54,9 @@ git clone git@github.com:Mr-Rafael/bucktracker-api.git
 cd bucktracker-api
 ```
 
-## Configure the app
+## Configure the environment variables
 
-Change the filename of ```.env.example``` into ```.env```. Change any variables if you need, but it will work if you leave it as is. Check [docs/app_configurations.md](docs/app_configurations.md) for the configuration specification.
+Bucktracker comes with an example ```.env.example``` ready to run locally. Make a copy of it and rename it to ```.env```. If you need to change any variables, check [docs/app_configurations.md](docs/app_configurations.md) for the environment variable specification.
 
 
 ## Run with Docker Compose
@@ -57,7 +74,7 @@ This command builds the images and starts the following containers:
 | `db` | PostgreSQL 15 database on port `5432`. Data is stored in the `bucktracker-api_postgres_data` volume. |
 | `migrate` | One-shot Goose job that applies the SQL migrations in `backend/internal/db/migrations`, then exits. |
 | `backend` | The BuckTracker REST API server. |
-| `frontend` | The BuckTracker web UI, served by nginx. |
+| `frontend` | A web UI to showcase the REST API, served by nginx. |
 
 ## Access the app
 
@@ -269,9 +286,11 @@ If you'd like to contribute, please fork the repository and open a pull request 
 
 # API Documentation
 
-Endpoint request and response details live in [docs/api.md](docs/api.md).
+### Request and response documentation: [API Docs](docs/api.md)
 
-System design, layers, and data flow are in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). Frontend stack and page structure are in [docs/frontend_architecture.md](docs/frontend_architecture.md).
+### System design, layers and data flow: [Architecture](docs/ARCHITECTURE.md)
+
+### Frontend stack and page structure: [Frontend Architecture](docs/frontend_architecture.md)
 
 # Collaborators</h2>
 <table>

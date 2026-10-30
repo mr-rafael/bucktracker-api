@@ -26,27 +26,13 @@ Frontend stack, shared scripts, and page structure are documented in [frontend_a
 
 The API uses a layered **handler-service-repository** architecture (also called controller-service-repository).
 
-```
-HTTP Request
-    │
-    ▼
-┌─────────────┐     DTO decode / map      ┌──────────────────┐
-│   Handler   │ ───────────────────────▶  │     Service      │
-│ internal/api│ ◀───────────────────────  │ internal/service │
-└─────────────┘     domain / DTO encode   └────────┬─────────┘
-                                                   │
-                                            domain objects
-                                                   │
-                                                   ▼
-                                          ┌──────────────────┐
-                                          │    Repository    │
-                                          │internal/repository│
-                                          └────────┬─────────┘
-                                                   │
-                                              sqlc Queries
-                                                   │
-                                                   ▼
-                                              PostgreSQL
+```mermaid
+flowchart TD
+    HTTP[HTTP Request] --> Handler["Handler<br/>internal/api"]
+    Handler -->|"DTO decode / map"| Service["Service<br/>internal/service"]
+    Service -->|"domain / DTO encode"| Handler
+    Service -->|"domain objects"| Repo["Repository<br/>internal/repository"]
+    Repo -->|"sqlc Queries"| DB[(PostgreSQL)]
 ```
 
 Responsibilities by layer:
