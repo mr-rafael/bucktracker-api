@@ -64,6 +64,9 @@ func (r *SavingsRepo) GetSavingsPlanByID(ctx context.Context, planID uuid.UUID, 
 		return domain.SavingsPlan{}, fmt.Errorf("failed to fetch savings plan from database: %v", err)
 	}
 	plan, err := toSavingsPlan(savingsQueryResult)
+	if err != nil {
+		return domain.SavingsPlan{}, fmt.Errorf("error parsing database savings plan to SavingsPlan object: %v", err)
+	}
 
 	statesQueryResult, err := r.queries.GetSavingsStatesBySavingsID(ctx, querySavingsID)
 	if err != nil {

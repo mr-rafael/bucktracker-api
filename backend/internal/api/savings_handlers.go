@@ -92,6 +92,10 @@ func (handler *SavingsHandler) HandleListSavings(writer http.ResponseWriter, req
 	}
 
 	result, err := handler.savingsService.GetSavingsPlansByUser(context.Background(), userUUID)
+	if err != nil {
+		respondWithErrorCode(writer, "error fetching savings plans for user", http.StatusInternalServerError)
+		return
+	}
 
 	respondWithJSON(writer, mapper.ToSavingsListResponse(result), http.StatusOK)
 }

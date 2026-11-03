@@ -123,7 +123,10 @@ func DeleteTestUser() {
 
 	user, err := queries.GetUserByEmail(ctx, testEmail)
 	if err == nil {
-		queries.DeleteUser(ctx, user.ID)
+		err = queries.DeleteUser(ctx, user.ID)
+		if err != nil {
+			log.Fatalf("Failed to delete test user: %v", err)
+		}
 		return
 	}
 }

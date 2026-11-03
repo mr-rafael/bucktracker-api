@@ -1,6 +1,7 @@
 package api
 
 import (
+	"log"
 	"net/http"
 )
 
@@ -14,5 +15,7 @@ func NewAdminHandler() AdminHandler {
 func (admin *AdminHandler) HandlerHealthZ(writer http.ResponseWriter, request *http.Request) {
 	writer.WriteHeader(http.StatusOK)
 	writer.Header().Set("Content-Type", "text/plain; charset=utf-8")
-	writer.Write([]byte("OK"))
+	if _, err := writer.Write([]byte("OK")); err != nil {
+		log.Printf("healthz: failed to write response: %v", err)
+	}
 }

@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 )
 
@@ -22,13 +23,17 @@ func respondWithError(writer http.ResponseWriter, logMessage string, apiErrorMes
 	respBody := validateResponseErrorParams{
 		Error: apiErrorMessage,
 	}
-	json.NewEncoder(writer).Encode(respBody)
+	if err := json.NewEncoder(writer).Encode(respBody); err != nil {
+		log.Printf("[Error]: failed to encode error response: %v", err)
+	}
 }
 
 func respondWithJSON(writer http.ResponseWriter, data any, statusCode int) {
 	writer.Header().Set("Content-Type", "application/json")
 	writer.WriteHeader(statusCode)
-	json.NewEncoder(writer).Encode(data)
+	if err := json.NewEncoder(writer).Encode(data); err != nil {
+		log.Printf("[Error]: failed to encode JSON response: %v", err)
+	}
 }
 
 func respondWithCode(writer http.ResponseWriter, statusCode int) {

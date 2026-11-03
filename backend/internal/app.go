@@ -108,5 +108,7 @@ func New() *App {
 func (a *App) Run() {
 	defer a.DB.Close()
 	port := ":8080"
-	http.ListenAndServe(port, a.Handler)
+	if err := http.ListenAndServe(port, a.Handler); err != nil {
+		log.Fatalf("server failed: %v", err)
+	}
 }
