@@ -199,6 +199,9 @@ func TestUpdateLoan(t *testing.T) {
 	params := testLoanParams(testUser.ID.Bytes)
 
 	result, err := repo.SaveLoanPaymentPlan(ctx, params)
+	if err != nil {
+		log.Fatalf("error saving loan payment plan to database: %v", err)
+	}
 
 	updatedName := "updatedLoanTest"
 	updatedPrincipal := 100
@@ -210,6 +213,9 @@ func TestUpdateLoan(t *testing.T) {
 	params.OriginalData.YearlyInterestRate = updatedInterest
 
 	got, err := repo.UpdateLoan(ctx, params)
+	if err != nil {
+		log.Fatalf("error updating loan payment plan on database: %v", err)
+	}
 
 	want := db.Loan{
 		Name:               updatedName,
