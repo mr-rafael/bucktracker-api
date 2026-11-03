@@ -129,7 +129,7 @@ func (s *AuthService) Login(ctx context.Context, input LoginInput) (LoginInfo, e
 
 	err = bcrypt.CompareHashAndPassword([]byte(userInfo.PasswordHash), []byte(input.Password))
 	if err != nil {
-		return LoginInfo{}, fmt.Errorf("password hash mismatch.")
+		return LoginInfo{}, fmt.Errorf("password hash mismatch")
 	}
 
 	accessToken, err := auth.GenerateAccessToken(userInfo.ID.String(), s.accessSecret)
@@ -170,7 +170,7 @@ func (s *AuthService) Refresh(ctx context.Context, input RefreshInput) (RefreshI
 	}
 
 	if tokenData.ExpiresAt.Time.Before(time.Now()) {
-		return RefreshInfo{}, fmt.Errorf("refresh attempt with expired token.")
+		return RefreshInfo{}, fmt.Errorf("refresh attempt with expired token")
 	}
 
 	accessToken, err := auth.GenerateAccessToken(tokenData.UserID.String(), s.accessSecret)

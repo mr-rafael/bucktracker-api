@@ -92,7 +92,7 @@ func (s *SavingsService) GetSavingsPlan(ctx context.Context, planID uuid.UUID, u
 func (s *SavingsService) UpdateSavings(ctx context.Context, input domain.UpdateSavingsInput) (db.Saving, error) {
 	originalData, err := s.savingsRepo.GetSavingsInitialData(ctx, input.ID, input.UserID)
 	if err != nil {
-		return db.Saving{}, fmt.Errorf("Savings plan not found.")
+		return db.Saving{}, fmt.Errorf("savings plan not found")
 	}
 	patchedData := patchSavingsFields(originalData, input)
 
