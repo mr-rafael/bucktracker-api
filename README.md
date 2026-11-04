@@ -2,6 +2,8 @@
 
 **A REST API with useful Savings and Loans calculations.**
 
+![BuckTracker CI](https://github.com/mr-rafael/bucktracker-api/actions/workflows/ci.yml/badge.svg)
+
 Do you have a loan or mortgage? Have you wondered how much you could save in interest if you make early principal payments? Or how much earlier you could pay it off? Bucktracker can help you with these questions!
 
 Currently, it can help you:

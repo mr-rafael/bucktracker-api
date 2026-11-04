@@ -92,6 +92,10 @@ func (handler *LoanHandler) HandleListLoans(writer http.ResponseWriter, request 
 	}
 
 	result, err := handler.loanService.GetLoansByUser(context.Background(), userUUID)
+	if err != nil {
+		respondWithErrorCode(writer, "error fetching loans for user", http.StatusInternalServerError)
+		return
+	}
 
 	respondWithJSON(writer, mapper.ToLoanListResponse(result), http.StatusOK)
 }

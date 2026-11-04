@@ -16,6 +16,9 @@ func TestCreateRefreshToken(t *testing.T) {
 	authRepo := NewAuthRepo(queries)
 
 	userData, err := CreateTestUserIfNotExists()
+	if err != nil {
+		log.Fatalf("Error creating test user: %v", err)
+	}
 
 	got, err := authRepo.CreateRefreshToken(ctx, userData.ID, "test_token", time.Now())
 	if err != nil {

@@ -45,11 +45,6 @@ func toInflationMultiplier(rate string) (decimal.Decimal, error) {
 	return decimalInflation, nil
 }
 
-func getReturnPercent(rate decimal.Decimal) string {
-	returnPercent := rate.Sub(decimal.NewFromInt(1)).Mul(decimal.NewFromInt(100))
-	return returnPercent.Round(2).String()
-}
-
 func decimalIsBetween(dec decimal.Decimal, lower string, upper string) bool {
 	lowerDecimal, _ := decimal.NewFromString(lower)
 	upperDecimal, _ := decimal.NewFromString(upper)

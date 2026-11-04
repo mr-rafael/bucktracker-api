@@ -60,7 +60,7 @@ func (s *LoansService) CalculateLoanPaymentPlan(input domain.LoansInput) (domain
 
 	loan, err = calculatePaymentPlan(loan, nil)
 	if err != nil {
-		return domain.Loan{}, fmt.Errorf("Error calculating payment plan: %v", err)
+		return domain.Loan{}, fmt.Errorf("error calculating payment plan: %v", err)
 	}
 
 	return loan, nil
@@ -74,7 +74,7 @@ func (s *LoansService) SaveLoanPaymentPlan(ctx context.Context, input domain.Sav
 
 	loan, err = calculatePaymentPlan(loan, nil)
 	if err != nil {
-		return domain.Loan{}, fmt.Errorf("Error calculating payment plan: %v", err)
+		return domain.Loan{}, fmt.Errorf("error calculating payment plan: %v", err)
 	}
 	// Newly created loans always start with a default plan and no principal payments.
 	if loan.DefaultPaymentPlan != nil {
@@ -120,7 +120,7 @@ func (s *LoansService) GetPaymentPlan(ctx context.Context, loanID uuid.UUID, pay
 func (s *LoansService) CreatePaymentPlan(ctx context.Context, input domain.CreatePaymentPlanInput) (domain.LoanPaymentPlan, error) {
 	originalData, err := s.loansRepo.GetLoanInitialData(ctx, input.LoanID, input.UserID)
 	if err != nil {
-		return domain.LoanPaymentPlan{}, fmt.Errorf("Loan not found.")
+		return domain.LoanPaymentPlan{}, fmt.Errorf("loan not found")
 	}
 
 	loan, err := initializeLoan(originalData.LoanData, input.UserID, originalData.Name)
@@ -135,7 +135,7 @@ func (s *LoansService) CreatePaymentPlan(ctx context.Context, input domain.Creat
 
 	loan, err = calculatePaymentPlan(loan, paymentPlan)
 	if err != nil {
-		return domain.LoanPaymentPlan{}, fmt.Errorf("Error calculating payment plan: %v", err)
+		return domain.LoanPaymentPlan{}, fmt.Errorf("error calculating payment plan: %v", err)
 	}
 
 	created, err := s.loansRepo.CreatePaymentPlanForLoan(ctx, input.LoanID, input.UserID, *loan.DefaultPaymentPlan)
@@ -152,7 +152,7 @@ func (s *LoansService) UpdatePaymentPlan(ctx context.Context, input domain.Updat
 
 	existing, err := s.loansRepo.GetPaymentPlanByID(ctx, input.LoanID, input.PaymentPlanID, input.UserID)
 	if err != nil {
-		return domain.LoanPaymentPlan{}, fmt.Errorf("Payment plan not found.")
+		return domain.LoanPaymentPlan{}, fmt.Errorf("payment plan not found")
 	}
 
 	if input.PrincipalPayments == nil {
@@ -166,7 +166,7 @@ func (s *LoansService) UpdatePaymentPlan(ctx context.Context, input domain.Updat
 
 	originalData, err := s.loansRepo.GetLoanInitialData(ctx, input.LoanID, input.UserID)
 	if err != nil {
-		return domain.LoanPaymentPlan{}, fmt.Errorf("Loan not found.")
+		return domain.LoanPaymentPlan{}, fmt.Errorf("loan not found")
 	}
 
 	loan, err := initializeLoan(originalData.LoanData, input.UserID, originalData.Name)
@@ -182,7 +182,7 @@ func (s *LoansService) UpdatePaymentPlan(ctx context.Context, input domain.Updat
 
 	loan, err = calculatePaymentPlan(loan, paymentPlan)
 	if err != nil {
-		return domain.LoanPaymentPlan{}, fmt.Errorf("Error calculating payment plan: %v", err)
+		return domain.LoanPaymentPlan{}, fmt.Errorf("error calculating payment plan: %v", err)
 	}
 	loan.DefaultPaymentPlan.ID = input.PaymentPlanID
 
@@ -196,13 +196,13 @@ func (s *LoansService) UpdatePaymentPlan(ctx context.Context, input domain.Updat
 func (s *LoansService) UpdateLoan(ctx context.Context, input domain.UpdateLoanInput) (domain.Loan, error) {
 	originalData, err := s.loansRepo.GetLoanInitialData(ctx, input.ID, input.UserID)
 	if err != nil {
-		return domain.Loan{}, fmt.Errorf("Loan not found.")
+		return domain.Loan{}, fmt.Errorf("loan not found")
 	}
 	patchedData := patchLoanFields(originalData, input)
 
 	existingLoan, err := s.loansRepo.GetLoanByID(ctx, input.ID, input.UserID)
 	if err != nil {
-		return domain.Loan{}, fmt.Errorf("Loan not found.")
+		return domain.Loan{}, fmt.Errorf("loan not found")
 	}
 
 	loan, err := initializeLoan(patchedData.LoanData, input.UserID, patchedData.Name)
@@ -215,7 +215,7 @@ func (s *LoansService) UpdateLoan(ctx context.Context, input domain.UpdateLoanIn
 		for _, planID := range paymentPlanIDs(existingLoan) {
 			existingPlan, err := s.loansRepo.GetPaymentPlanByID(ctx, input.ID, planID, input.UserID)
 			if err != nil {
-				return domain.Loan{}, fmt.Errorf("Payment plan not found.")
+				return domain.Loan{}, fmt.Errorf("payment plan not found")
 			}
 
 			calcLoan, err := initializeLoan(patchedData.LoanData, input.UserID, patchedData.Name)
@@ -229,7 +229,7 @@ func (s *LoansService) UpdateLoan(ctx context.Context, input domain.UpdateLoanIn
 			}
 			calcLoan, err = calculatePaymentPlan(calcLoan, paymentPlan)
 			if err != nil {
-				return domain.Loan{}, fmt.Errorf("Error calculating payment plan: %v", err)
+				return domain.Loan{}, fmt.Errorf("error calculating payment plan: %v", err)
 			}
 			calcLoan.DefaultPaymentPlan.ID = existingPlan.ID
 
@@ -308,7 +308,7 @@ func calculatePaymentPlan(loan domain.Loan, paymentPlan *domain.LoanPaymentPlan)
 		i++
 		if i > maxPaymentYears*12 {
 			remainder := loan.CurrentPrincipal.Div(decimal.NewFromInt(100)).Round(2).String()
-			return domain.Loan{}, fmt.Errorf("The payment plan exceeds the year limit (%v years), with a remaining %v to pay", maxPaymentYears, remainder)
+			return domain.Loan{}, fmt.Errorf("the payment plan exceeds the year limit (%v years), with a remaining %v to pay", maxPaymentYears, remainder)
 		}
 		payment := loan.PassMonth()
 		payment = loan.GenerateInterest(payment)
@@ -387,7 +387,7 @@ func checkIfEnoughMonthlyPayment(loan domain.Loan) error {
 	aHundred := decimal.NewFromInt32(100)
 
 	if loan.PaymentM.Compare(minPayment) != 1 {
-		return fmt.Errorf("The monthly payment is not enough to cover interest and escrow payment for the first month (total $%v). Please enter a higher monthly payment.", minPayment.Div(aHundred).Round(2).String())
+		return fmt.Errorf("the monthly payment is not enough to cover interest and escrow payment for the first month (total $%v). please enter a higher monthly payment", minPayment.Div(aHundred).Round(2).String())
 	}
 	return nil
 }

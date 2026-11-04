@@ -12,13 +12,13 @@ import (
 )
 
 func initializeQueries(ctx context.Context) *db.Queries {
-	err := godotenv.Load("../../.env")
+	err := godotenv.Load("../../../.env")
 	if err != nil {
 		fmt.Printf("Error reading .env: %v", err)
 	}
 	dbURL := os.Getenv("POSTGRES_CONNECTION_STRING")
 	if dbURL == "" {
-		log.Fatal("DB_URL environment variable not set")
+		log.Fatal("POSTGRES_CONNECTION_STRING environment variable not set for unit test")
 	}
 
 	pool, err := pgxpool.New(ctx, dbURL)

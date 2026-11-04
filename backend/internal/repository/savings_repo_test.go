@@ -261,6 +261,9 @@ func TestUpdateSavings(t *testing.T) {
 	params.OriginalData.YearlyInterestRate = updatedInterest
 
 	got, err := repo.UpdateSavings(ctx, params)
+	if err != nil {
+		log.Fatalf("Failed to update savings on database: %v", err)
+	}
 
 	want := db.Saving{
 		Name:               updatedName,

@@ -27,39 +27,39 @@ func (r *LoansRepo) SaveLoanPaymentPlan(ctx context.Context, loan domain.Loan) (
 
 	loanParams, err := toLoanInsertQueryParams(loan)
 	if err != nil {
-		return db.Loan{}, fmt.Errorf("Error preparing params for insert query: %v", err)
+		return db.Loan{}, fmt.Errorf("error preparing params for insert query: %v", err)
 	}
 
 	savedLoan, err := r.queries.CreateLoan(ctx, loanParams)
 	if err != nil {
-		return db.Loan{}, fmt.Errorf("Failed to save to database: %v", err)
+		return db.Loan{}, fmt.Errorf("failed to save to database: %v", err)
 	}
 
 	paymentPlan, err := r.queries.CreatePaymentPlan(ctx, toPaymentPlanInsertParams(*loan.DefaultPaymentPlan, savedLoan.ID))
 	if err != nil {
-		return db.Loan{}, fmt.Errorf("Failed to save payment plan to database: %v", err)
+		return db.Loan{}, fmt.Errorf("failed to save payment plan to database: %v", err)
 	}
 
 	updateParams, err := toLoanUpdateQueryParams(loan, savedLoan.ID, paymentPlan.ID)
 	if err != nil {
-		return db.Loan{}, fmt.Errorf("Error preparing params for update query: %v", err)
+		return db.Loan{}, fmt.Errorf("error preparing params for update query: %v", err)
 	}
 	savedLoan, err = r.queries.UpdateLoan(ctx, updateParams)
 	if err != nil {
-		return db.Loan{}, fmt.Errorf("Failed to set default payment plan: %v", err)
+		return db.Loan{}, fmt.Errorf("failed to set default payment plan: %v", err)
 	}
 
 	for _, status := range loan.DefaultPaymentPlan.Plan {
 		_, err := r.queries.CreateLoanState(ctx, toLoanStateInsertParams(status, paymentPlan.ID))
 		if err != nil {
-			return db.Loan{}, fmt.Errorf("Failed to save loan status to database: %v", err)
+			return db.Loan{}, fmt.Errorf("failed to save loan status to database: %v", err)
 		}
 	}
 
 	for _, principalPayment := range loan.DefaultPaymentPlan.PrincipalPayments {
 		_, err := r.queries.CreatePrincipalPayment(ctx, toPrincipalPaymentInsertParams(principalPayment, paymentPlan.ID))
 		if err != nil {
-			return db.Loan{}, fmt.Errorf("Failed to save principal payment to database: %v", err)
+			return db.Loan{}, fmt.Errorf("failed to save principal payment to database: %v", err)
 		}
 	}
 
@@ -150,20 +150,20 @@ func (r *LoansRepo) CreatePaymentPlanForLoan(ctx context.Context, loanID uuid.UU
 
 	paymentPlan, err := r.queries.CreatePaymentPlan(ctx, toPaymentPlanInsertParams(plan, loan.ID))
 	if err != nil {
-		return domain.LoanPaymentPlan{}, fmt.Errorf("Failed to save payment plan to database: %v", err)
+		return domain.LoanPaymentPlan{}, fmt.Errorf("failed to save payment plan to database: %v", err)
 	}
 
 	for _, status := range plan.Plan {
 		_, err := r.queries.CreateLoanState(ctx, toLoanStateInsertParams(status, paymentPlan.ID))
 		if err != nil {
-			return domain.LoanPaymentPlan{}, fmt.Errorf("Failed to save loan status to database: %v", err)
+			return domain.LoanPaymentPlan{}, fmt.Errorf("failed to save loan status to database: %v", err)
 		}
 	}
 
 	for _, principalPayment := range plan.PrincipalPayments {
 		_, err := r.queries.CreatePrincipalPayment(ctx, toPrincipalPaymentInsertParams(principalPayment, paymentPlan.ID))
 		if err != nil {
-			return domain.LoanPaymentPlan{}, fmt.Errorf("Failed to save principal payment to database: %v", err)
+			return domain.LoanPaymentPlan{}, fmt.Errorf("failed to save principal payment to database: %v", err)
 		}
 	}
 
@@ -207,28 +207,28 @@ func (r *LoansRepo) UpdatePaymentPlanForLoan(ctx context.Context, loanID uuid.UU
 
 	paymentPlan, err := r.queries.UpdatePaymentPlan(ctx, toPaymentPlanUpdateParams(plan, existingPlan.ID))
 	if err != nil {
-		return domain.LoanPaymentPlan{}, fmt.Errorf("Failed to update payment plan on database: %v", err)
+		return domain.LoanPaymentPlan{}, fmt.Errorf("failed to update payment plan on database: %v", err)
 	}
 
 	err = r.queries.DeleteLoanStatesByPaymentPlanID(ctx, existingPlan.ID)
 	if err != nil {
-		return domain.LoanPaymentPlan{}, fmt.Errorf("Error deleting old payment plan data: %v", err)
+		return domain.LoanPaymentPlan{}, fmt.Errorf("error deleting old payment plan data: %v", err)
 	}
 	for _, status := range plan.Plan {
 		_, err := r.queries.CreateLoanState(ctx, toLoanStateInsertParams(status, existingPlan.ID))
 		if err != nil {
-			return domain.LoanPaymentPlan{}, fmt.Errorf("Failed to save loan status to database: %v", err)
+			return domain.LoanPaymentPlan{}, fmt.Errorf("failed to save loan status to database: %v", err)
 		}
 	}
 
 	err = r.queries.DeletePrincipalPaymentsByPaymentPlanID(ctx, existingPlan.ID)
 	if err != nil {
-		return domain.LoanPaymentPlan{}, fmt.Errorf("Error deleting old principal payments: %v", err)
+		return domain.LoanPaymentPlan{}, fmt.Errorf("error deleting old principal payments: %v", err)
 	}
 	for _, principalPayment := range plan.PrincipalPayments {
 		_, err := r.queries.CreatePrincipalPayment(ctx, toPrincipalPaymentInsertParams(principalPayment, existingPlan.ID))
 		if err != nil {
-			return domain.LoanPaymentPlan{}, fmt.Errorf("Failed to save principal payment to database: %v", err)
+			return domain.LoanPaymentPlan{}, fmt.Errorf("failed to save principal payment to database: %v", err)
 		}
 	}
 
@@ -261,7 +261,7 @@ func (r *LoansRepo) UpdatePaymentPlanName(ctx context.Context, loanID uuid.UUID,
 		Valid: true,
 	}))
 	if err != nil {
-		return domain.LoanPaymentPlan{}, fmt.Errorf("Failed to update payment plan name on database: %v", err)
+		return domain.LoanPaymentPlan{}, fmt.Errorf("failed to update payment plan name on database: %v", err)
 	}
 
 	existing.Name = paymentPlan.Name
@@ -326,7 +326,7 @@ func (r *LoansRepo) GetLoanInitialData(ctx context.Context, loanID uuid.UUID, us
 func (r *LoansRepo) UpdateLoan(ctx context.Context, loan domain.Loan) (db.Loan, error) {
 	existingLoan, err := r.queries.GetLoan(ctx, toLoanGetParams(loan.ID, loan.UserID))
 	if err != nil {
-		return db.Loan{}, fmt.Errorf("Failed to fetch loan for update: %v", err)
+		return db.Loan{}, fmt.Errorf("failed to fetch loan for update: %v", err)
 	}
 	if !existingLoan.DefaultPaymentPlan.Valid {
 		return db.Loan{}, fmt.Errorf("loan has no default payment plan")
@@ -334,12 +334,12 @@ func (r *LoansRepo) UpdateLoan(ctx context.Context, loan domain.Loan) (db.Loan, 
 
 	loanParams, err := toLoanUpdateQueryParams(loan, existingLoan.ID, existingLoan.DefaultPaymentPlan)
 	if err != nil {
-		return db.Loan{}, fmt.Errorf("Error preparing params for update query: %v", err)
+		return db.Loan{}, fmt.Errorf("error preparing params for update query: %v", err)
 	}
 
 	queryResult, err := r.queries.UpdateLoan(ctx, loanParams)
 	if err != nil {
-		return db.Loan{}, fmt.Errorf("Failed to update loan on database: %v", err)
+		return db.Loan{}, fmt.Errorf("failed to update loan on database: %v", err)
 	}
 
 	return queryResult, nil
@@ -348,7 +348,7 @@ func (r *LoansRepo) UpdateLoan(ctx context.Context, loan domain.Loan) (db.Loan, 
 func (r *LoansRepo) DeleteLoan(ctx context.Context, loanID uuid.UUID, userID uuid.UUID) error {
 	existingLoan, err := r.queries.GetLoan(ctx, toLoanGetParams(loanID, userID))
 	if err != nil {
-		return fmt.Errorf("Not found.")
+		return fmt.Errorf("not found")
 	}
 
 	// Clear the circular FK before deleting so payment_plans can cascade.
@@ -366,7 +366,7 @@ func (r *LoansRepo) DeleteLoan(ctx context.Context, loanID uuid.UUID, userID uui
 	}
 	_, err = r.queries.UpdateLoan(ctx, clearParams)
 	if err != nil {
-		return fmt.Errorf("Failed to clear default payment plan before delete: %v", err)
+		return fmt.Errorf("failed to clear default payment plan before delete: %v", err)
 	}
 
 	rows, err := r.queries.DeleteLoan(ctx, db.DeleteLoanParams{
@@ -374,7 +374,7 @@ func (r *LoansRepo) DeleteLoan(ctx context.Context, loanID uuid.UUID, userID uui
 		UserID: existingLoan.UserID,
 	})
 	if err != nil || rows <= 0 {
-		return fmt.Errorf("Not found.")
+		return fmt.Errorf("not found")
 	}
 	return nil
 }
@@ -382,7 +382,7 @@ func (r *LoansRepo) DeleteLoan(ctx context.Context, loanID uuid.UUID, userID uui
 func (r *LoansRepo) DeletePaymentPlan(ctx context.Context, loanID uuid.UUID, paymentPlanID uuid.UUID, userID uuid.UUID) error {
 	existingLoan, err := r.queries.GetLoan(ctx, toLoanGetParams(loanID, userID))
 	if err != nil {
-		return fmt.Errorf("Not found.")
+		return fmt.Errorf("not found")
 	}
 
 	existingPlan, err := r.queries.GetPaymentPlanByIDAndLoanID(ctx, db.GetPaymentPlanByIDAndLoanIDParams{
@@ -396,7 +396,7 @@ func (r *LoansRepo) DeletePaymentPlan(ctx context.Context, loanID uuid.UUID, pay
 		},
 	})
 	if err != nil {
-		return fmt.Errorf("Not found.")
+		return fmt.Errorf("not found")
 	}
 
 	// Clear the circular FK if this plan is the loan's default before deleting.
@@ -415,13 +415,13 @@ func (r *LoansRepo) DeletePaymentPlan(ctx context.Context, loanID uuid.UUID, pay
 		}
 		_, err = r.queries.UpdateLoan(ctx, clearParams)
 		if err != nil {
-			return fmt.Errorf("Failed to clear default payment plan before delete: %v", err)
+			return fmt.Errorf("failed to clear default payment plan before delete: %v", err)
 		}
 	}
 
 	err = r.queries.DeletePaymentPlan(ctx, existingPlan.ID)
 	if err != nil {
-		return fmt.Errorf("Not found.")
+		return fmt.Errorf("not found")
 	}
 	return nil
 }

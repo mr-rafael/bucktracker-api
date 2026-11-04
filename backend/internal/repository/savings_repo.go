@@ -23,18 +23,18 @@ func NewSavingsRepo(queries *db.Queries) *SavingsRepo {
 func (r *SavingsRepo) SaveSavingsPlan(ctx context.Context, plan domain.SavingsPlan) (db.Saving, error) {
 	savingsParams, err := toSavingsInsertQueryParams(plan)
 	if err != nil {
-		return db.Saving{}, fmt.Errorf("Error preparing params for insert query: %v", err)
+		return db.Saving{}, fmt.Errorf("error preparing params for insert query: %v", err)
 	}
 
 	queryResult, err := r.queries.CreateSavings(ctx, savingsParams)
 	if err != nil {
-		return db.Saving{}, fmt.Errorf("Failed to save to database: %v", err)
+		return db.Saving{}, fmt.Errorf("failed to save to database: %v", err)
 	}
 
 	for _, status := range plan.Plan {
 		_, err := r.queries.CreateSavingsState(ctx, toSavingsStateInsertParams(status, queryResult.ID))
 		if err != nil {
-			return db.Saving{}, fmt.Errorf("Failed to save savings status to database: %v", err)
+			return db.Saving{}, fmt.Errorf("failed to save savings status to database: %v", err)
 		}
 	}
 	return queryResult, nil
@@ -64,6 +64,9 @@ func (r *SavingsRepo) GetSavingsPlanByID(ctx context.Context, planID uuid.UUID, 
 		return domain.SavingsPlan{}, fmt.Errorf("failed to fetch savings plan from database: %v", err)
 	}
 	plan, err := toSavingsPlan(savingsQueryResult)
+	if err != nil {
+		return domain.SavingsPlan{}, fmt.Errorf("error parsing database savings plan to SavingsPlan object: %v", err)
+	}
 
 	statesQueryResult, err := r.queries.GetSavingsStatesBySavingsID(ctx, querySavingsID)
 	if err != nil {
@@ -110,23 +113,23 @@ func (r *SavingsRepo) GetSavingsInitialData(ctx context.Context, savingsID uuid.
 func (r *SavingsRepo) UpdateSavings(ctx context.Context, plan domain.SavingsPlan) (db.Saving, error) {
 	savingsParams, err := toSavingsUpdateQueryParams(plan)
 	if err != nil {
-		return db.Saving{}, fmt.Errorf("Error preparing params for update query: %v", err)
+		return db.Saving{}, fmt.Errorf("error preparing params for update query: %v", err)
 	}
 
 	queryResult, err := r.queries.UpdateSavings(ctx, savingsParams)
 	if err != nil {
-		return db.Saving{}, fmt.Errorf("Failed to update savings plan on database: %v", err)
+		return db.Saving{}, fmt.Errorf("failed to update savings plan on database: %v", err)
 	}
 
 	err = r.queries.DeleteSavingsStatesBySavingsID(ctx, savingsParams.ID)
 	if err != nil {
-		return db.Saving{}, fmt.Errorf("Error deleting old savings plan data: %v", err)
+		return db.Saving{}, fmt.Errorf("error deleting old savings plan data: %v", err)
 	}
 
 	for _, status := range plan.Plan {
 		_, err := r.queries.CreateSavingsState(ctx, toSavingsStateInsertParams(status, queryResult.ID))
 		if err != nil {
-			return db.Saving{}, fmt.Errorf("Failed to update savings status in database: %v", err)
+			return db.Saving{}, fmt.Errorf("failed to update savings status in database: %v", err)
 		}
 	}
 	return queryResult, nil
@@ -135,7 +138,7 @@ func (r *SavingsRepo) UpdateSavings(ctx context.Context, plan domain.SavingsPlan
 func (r *SavingsRepo) DeleteSavingsPlan(ctx context.Context, planID uuid.UUID, userID uuid.UUID) error {
 	rows, err := r.queries.DeleteSavings(ctx, db.DeleteSavingsParams(toSavingsGetParams(planID, userID)))
 	if err != nil || rows <= 0 {
-		return fmt.Errorf("Not found.")
+		return fmt.Errorf("not found")
 	}
 	return nil
 }
