@@ -59,7 +59,7 @@ jobs:
           working-directory: backend
 
       - name: Install Goose
-        run: go install github.com/pressly/goose/v3/cmd/goose@v3.27.3
+        run: go install github.com/pressly/goose/v3/cmd/goose@v3.27.0
 
       - name: Apply database migrations
         working-directory: backend

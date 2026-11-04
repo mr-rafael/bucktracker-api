@@ -9,7 +9,7 @@ RUN go mod download
 COPY . .
 
 RUN CGO_ENABLED=0 GOOS=linux go build -o /app/server ./cmd/server/main.go
-RUN go install github.com/pressly/goose/v3/cmd/goose@v3.27.3
+RUN go install github.com/pressly/goose/v3/cmd/goose@v3.27.0
 
 FROM alpine:3.20
 
