@@ -104,7 +104,7 @@ func TestCalculateLoanTermTooLong(t *testing.T) {
 	input := domain.LoansInput{
 		StartingPrincipal:  10000000,
 		YearlyInterestRate: "5",
-		MonthlyPayment:     63682,
+		MonthlyPayment:     57973,
 		EscrowPayment:      10000,
 		StartDate:          "1970-01-01",
 	}

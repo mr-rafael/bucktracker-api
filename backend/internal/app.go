@@ -43,9 +43,6 @@ func New() *App {
 	}
 
 	// database
-	if dbURL == "" {
-		log.Fatal("DB_URL not set")
-	}
 
 	pool, err := pgxpool.New(ctx, dbURL)
 	if err != nil {
